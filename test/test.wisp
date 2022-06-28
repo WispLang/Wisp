@@ -1,10 +1,10 @@
-<testTypes {
+TestType [
   a: i32
   b: i32
-}>
-
-testTypesFunc(val: testTypes): i32 {
-    -> val.a + val.b
+] {
+  add(): i32 {
+    -> a + b
+  }
 }
 
 testConditions(number: i32): u1 {
@@ -19,8 +19,8 @@ testConditions(number: i32): u1 {
 
 testLoops(): u1 {
     num: i32 = 2
-    | i: i32 = 1 | i < 15 | i++ | {
-        num = testTypesFunc(<a=i, b=num>)
+    [i: i32 = 1, i < 15, i++] {
+        num = TestType[i num].add()
     }
     -> testConditions(num)
 }
