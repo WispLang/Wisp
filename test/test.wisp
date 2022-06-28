@@ -1,6 +1,12 @@
-add(a: i32, b: i32): i32 {
-    -> a + b
+<testTypes {
+  a: i32
+  b: i32
+}>
+
+testTypesFunc(val: testTypes): i32 {
+    -> val.a + val.b
 }
+
 testConditions(number: i32): u1 {
     number == 0? {
         -> 1
@@ -10,6 +16,7 @@ testConditions(number: i32): u1 {
         -> 0
     }
 }
+
 testLoops(): i32 {
     num: i32 = 2
     | i: i32 = 1 | i < 15 | i++ | {
