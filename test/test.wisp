@@ -1,10 +1,12 @@
 add(a: i32, b: i32): i32 {
     -> a + b
 }
-checkZero(number: i32): u1 {
+testConditions(number: i32): u1 {
     number == 0? {
         -> 1
-    } :? {
+    }, number == 1? {
+        -> 1
+    }, {
         -> 0
     }
 }
