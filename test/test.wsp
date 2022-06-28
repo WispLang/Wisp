@@ -21,7 +21,7 @@ var max: i32 = 15
 
 func testLoops(): u1 {
     var num: i32 = 2
-    for [data i: i32 = 1, i < max, i++] {
+    for [var i: i32 = 1, i < max, i++] {
         num = TestType[i num].add()
     }
     -> testConditions(num)
