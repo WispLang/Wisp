@@ -1,6 +1,6 @@
 type TestType [
-  data a: i32
-  data b: i32
+  var a: i32
+  var b: i32
 ] {
   func add(): i32 {
     -> a + b
@@ -17,10 +17,10 @@ func testConditions(number: i32): u1 {
     }
 }
 
-data max: i32 = 15
+var max: i32 = 15
 
 func testLoops(): u1 {
-    data num: i32 = 2
+    var num: i32 = 2
     for [data i: i32 = 1, i < max, i++] {
         num = TestType[i num].add()
     }
