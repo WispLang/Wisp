@@ -24,24 +24,25 @@ class Tokenizer {
         var i = 0
         while(i < value.length) {
             val character = value.get(i)
-            if(character.isDigit()) {
-                val integerString = addIntToString(value, i)
-                i+=integerString.length-1
-                tokenArray.add(Token(Type.INTEGER, integerString))
-            }
-            else if(character == '(') {
-                tokenArray.add(Token(Type.LEFTPARENTHESIS, character.toString()))
-            }
-            else if(character == ')') {
-                tokenArray.add(Token(Type.RIGHTPARENTHESIS, character.toString()))
-            }
-
             when {
-                value.startsWith('"') && value.endsWith('"') -> {
+                character == '"' -> {
+                    value.dropLast(value.length)
                     val string = addCharacterToString(value,i)
-                    i+=string.length-1
                     tokenArray.add(Token(Type.STRING, string))
                 }
+                character == ')' -> {
+                    tokenArray.add(Token(Type.RIGHTPARENTHESIS, character.toString()))
+                }
+                character == '(' -> {
+                    tokenArray.add(Token(Type.LEFTPARENTHESIS, character.toString()))
+                }
+
+                character.isDigit() -> {
+                    val integerString = addIntToString(value, i)
+                    i+=integerString.length-1
+                    tokenArray.add(Token(Type.INTEGER, integerString))
+                }
+
             }
             i++
 
@@ -62,18 +63,15 @@ class Tokenizer {
 
     fun addCharacterToString(value: String, index: Int): String {
         var string = ""
-        for(i in index..value.length-1) {
-            val char = value.get(i)
+        var i = index
+        while(i < value.length-1) {
+            var char = value.get(i)
             if(char == '"') {
-                continue
+                i++
             }
-
-            if(string.endsWith('"')) {
-                continue
-            }
-
             else {
                 string += char
+                i++
             }
         }
         return string
