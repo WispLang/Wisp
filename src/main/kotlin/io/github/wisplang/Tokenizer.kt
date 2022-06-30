@@ -5,7 +5,9 @@ class Tokenizer {
         LEFTPARENTHESIS,
         RIGHTPARENTHESIS,
         INTEGER,
-        STRING
+        STRING,
+        BOOLEAN,
+        WHITESPACE
     }
 
     enum class Symbol(character: Char) {
@@ -41,6 +43,13 @@ class Tokenizer {
                     i+=integerString.length-1
                     tokenArray.add(Token(Type.INTEGER, integerString))
                 }
+                value == "true" || value == "false" -> {
+                    i+=value.length
+                    tokenArray.add(Token(Type.BOOLEAN, value))
+                }
+                character.isWhitespace() -> {
+                  tokenArray.add(Token(Type.WHITESPACE,character.toString()))
+                }
 
             }
             i++
@@ -54,6 +63,9 @@ class Tokenizer {
             val char = value.get(i)
             if(char.isDigit()) {
                 integerString += char
+            }
+            if(char.isWhitespace()) {
+                break
             }
         }
         return integerString
