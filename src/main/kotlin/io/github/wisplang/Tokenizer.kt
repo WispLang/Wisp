@@ -2,22 +2,16 @@ package io.github.wisplang
 
 object Tokenizer {
     enum class Type {
-        LEFTPARENTHESIS,
-        RIGHTPARENTHESIS,
-        INTEGER,
+        SYMBOL,
+        NUMBER,
         STRING,
-        BOOLEAN,
+        NAME,
         WHITESPACE
     }
-
-    enum class Symbol(val character: Char) {
-        DIVISION('/'),
-        MULTIPLY('*'),
-        ADD('+'),
-        SUBTRACT('-')
-    }
-
     data class Token(val type: Type, val value: String)
+
+    val letterRegex = Regex("[a-zA-Z_$]")
+    val symbolRegex = Regex("[{}()<>,.'\"\\[\\]|\\\\+\\-=*/&]")
 
     fun tokenize(value: String): ArrayList<Token> {
         val tokenArray = arrayListOf<Token>()
@@ -29,23 +23,26 @@ object Tokenizer {
                 character == '"' -> {
                     value.dropLast(value.length)
                     val string = buildQuotedString(value,++i)
-                    i = value.indexOf('"', i)
+                    i = string.replace("\"","\\\"").replace("\n","\\n").length
                     tokenArray.add(Token(Type.STRING, string))
                 }
                 character.isDigit() -> {
                     val integerString = buildNumString(value, i)
                     i+=integerString.length-1
-                    tokenArray.add(Token(Type.INTEGER, integerString))
+                    tokenArray.add(Token(Type.NUMBER, integerString))
                 }
-                character == ')' -> {
-                    tokenArray.add(Token(Type.RIGHTPARENTHESIS, character.toString()))
+                letterRegex.matches(character.toString()) -> {
+                    val nameString = buildNameString(value, i)
+                    i+=nameString.length-1
+                    tokenArray.add(Token(Type.NAME, nameString))
                 }
-                character == '(' -> {
-                    tokenArray.add(Token(Type.LEFTPARENTHESIS, character.toString()))
+                symbolRegex.matches(character.toString()) -> {
+                    tokenArray.add(Token(Type.SYMBOL, character.toString()))
                 }
                 character.isWhitespace() -> {
                     tokenArray.add(Token(Type.WHITESPACE,character.toString()))
                 }
+
             }
             i++
         }
@@ -53,23 +50,23 @@ object Tokenizer {
     }
 
     fun buildNumString(value: String, index: Int): String {
-        var integerString = ""
+        var numberString = ""
         var hadDecimal = false
         for(i in index..value.length-1) {
             val char = value[i]
             if(char.isDigit() ) {
-                integerString += char
+                numberString += char
             } else if (!hadDecimal && char == '.') {
                 hadDecimal = true
-                integerString += char
+                numberString += char
             } else if (char == '.') {
                 //TODO: Replace with dedicated exception
                 throw Exception("Wisp: Cannot have multiple decimal points in a number")
-            } else if(char.isWhitespace()) {
+            } else if (char.isWhitespace()) {
                 break
             }
         }
-        return integerString
+        return numberString
     }
 
     fun buildQuotedString(value: String, index: Int): String {
@@ -95,7 +92,17 @@ object Tokenizer {
         return string
     }
 
+    fun buildNameString(value: String, index: Int): String {
+        var string = ""
+        var i = index
+        while (i < value.length) {
+            val char = value[i]
 
-
-
+            if (letterRegex.matches(char.toString()) || char.isDigit()) {
+                string += char
+            }
+            i++
+        }
+        return string
+    }
 }
