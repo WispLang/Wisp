@@ -6,7 +6,8 @@ object Tokenizer {
         NUMBER,
         STRING,
         NAME,
-        WHITESPACE
+        WHITESPACE,
+        BOOLEAN
     }
     data class Token(val type: Type, val value: String)
 
@@ -31,7 +32,7 @@ object Tokenizer {
                     i+=integerString.length-1
                     tokenArray.add(Token(Type.NUMBER, integerString))
                 }
-                letterRegex.matches(character.toString()) -> {
+                letterRegex.matches(character.toString()) && !(value.equals("true") || value.equals("false")) -> {
                     val nameString = buildNameString(value, i)
                     i+=nameString.length-1
                     tokenArray.add(Token(Type.NAME, nameString))
@@ -42,6 +43,11 @@ object Tokenizer {
                 character.isWhitespace() -> {
                     tokenArray.add(Token(Type.WHITESPACE,character.toString()))
                 }
+                value.equals("true") || value.equals("false") -> {
+                    tokenArray.add(Token(Type.BOOLEAN, value))
+                    i+=value.length-1
+                }
+
 
             }
             i++
