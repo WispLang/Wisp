@@ -102,7 +102,7 @@ object Tokenizer {
 
             if (letterRegex.matches(char.toString())) {
                 string += char
-            }
+            } else if (char.isWhitespace()) break
             i++
         }
         return string
