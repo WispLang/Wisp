@@ -32,11 +32,6 @@ object Tokenizer {
                     i+=integerString.length-1
                     tokenArray.add(Token(Type.NUMBER, integerString))
                 }
-                letterRegex.matches(character.toString()) && !(value.equals("true") || value.equals("false")) -> {
-                    val nameString = buildNameString(value, i)
-                    i+=nameString.length-1
-                    tokenArray.add(Token(Type.NAME, nameString))
-                }
                 symbolRegex.matches(character.toString()) -> {
                     tokenArray.add(Token(Type.SYMBOL, character.toString()))
                 }
@@ -46,6 +41,13 @@ object Tokenizer {
                 value.equals("true") || value.equals("false") -> {
                     tokenArray.add(Token(Type.BOOLEAN, value))
                     i+=value.length-1
+                }
+
+                else -> {
+                        val nameString = buildNameString(value, i)
+                        i+=nameString.length-1
+                        tokenArray.add(Token(Type.NAME, nameString))
+
                 }
 
 
@@ -104,7 +106,7 @@ object Tokenizer {
         while (i < value.length) {
             val char = value[i]
 
-            if (letterRegex.matches(char.toString()) || char.isDigit()) {
+            if (letterRegex.matches(char.toString())) {
                 string += char
             }
             i++
