@@ -5,7 +5,9 @@ object Tokenizer {
         LEFTPARENTHESIS,
         RIGHTPARENTHESIS,
         INTEGER,
-        STRING
+        STRING,
+        BOOLEAN,
+        WHITESPACE
     }
 
     enum class Symbol(val character: Char) {
@@ -41,6 +43,9 @@ object Tokenizer {
                 character == '(' -> {
                     tokenArray.add(Token(Type.LEFTPARENTHESIS, character.toString()))
                 }
+                character.isWhitespace() -> {
+                    tokenArray.add(Token(Type.WHITESPACE,character.toString()))
+                }
             }
             i++
         }
@@ -60,6 +65,8 @@ object Tokenizer {
             } else if (char == '.') {
                 //TODO: Replace with dedicated exception
                 throw Exception("Wisp: Cannot have multiple decimal points in a number")
+            } else if(char.isWhitespace()) {
+                break
             }
         }
         return integerString
