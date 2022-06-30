@@ -38,16 +38,11 @@ object Tokenizer {
                 character.isWhitespace() -> {
                     tokenArray.add(Token(Type.WHITESPACE,character.toString()))
                 }
-                value.equals("true") || value.equals("false") -> {
-                    tokenArray.add(Token(Type.BOOLEAN, value))
-                    i+=value.length-1
-                }
 
                 else -> {
                         val nameString = buildNameString(value, i)
                         i+=nameString.length-1
                         tokenArray.add(Token(Type.NAME, nameString))
-
                 }
 
 
