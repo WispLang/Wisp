@@ -8,7 +8,7 @@ object Tokenizer {
         NAME,
         WHITESPACE
     }
-    data class Token(val type: Type, val value: String)
+    data class Token(val type: Type, val value: String, val startIdx: Int, val endIdx: Int)
 
     val letterRegex = Regex("[a-zA-Z_$]")
     val symbolRegex = Regex("[{}()<>,.'\"\\[\\]|\\\\+\\-=*/&:]")
@@ -19,29 +19,29 @@ object Tokenizer {
         var i = 0
         while(i < value.length) {
             val character = value[i]
+            val startIdx = i
             when {
                 character == '"' -> {
                     value.dropLast(value.length)
                     val string = buildQuotedString(value,++i)
-                    i = string.replace("\"","\\\"").replace("\n","\\n").length
-                    tokenArray.add(Token(Type.STRING, string))
+                    i += string.replace("\"","\\\"").replace("\n","\\n").length
+                    tokenArray.add(Token(Type.STRING, string, startIdx, i))
                 }
                 character.isDigit() -> {
                     val integerString = buildNumString(value, i)
                     i+=integerString.length-1
-                    tokenArray.add(Token(Type.NUMBER, integerString))
+                    tokenArray.add(Token(Type.NUMBER, integerString, startIdx, i))
                 }
                 symbolRegex.matches(character.toString()) -> {
-                    tokenArray.add(Token(Type.SYMBOL, character.toString()))
+                    tokenArray.add(Token(Type.SYMBOL, character.toString(), startIdx, i))
                 }
                 character.isWhitespace() -> {
-                    tokenArray.add(Token(Type.WHITESPACE,character.toString()))
+                    tokenArray.add(Token(Type.WHITESPACE,character.toString(), startIdx, i))
                 }
-
-                else -> {
+                letterRegex.matches(character.toString()) -> {
                         val nameString = buildNameString(value, i)
                         i+=nameString.length-1
-                        tokenArray.add(Token(Type.NAME, nameString))
+                        tokenArray.add(Token(Type.NAME, nameString, startIdx, i))
                 }
 
 
