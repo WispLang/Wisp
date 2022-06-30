@@ -11,7 +11,7 @@ object Tokenizer {
     data class Token(val type: Type, val value: String)
 
     val letterRegex = Regex("[a-zA-Z_$]")
-    val symbolRegex = Regex("[{}()<>,.'\"\\[\\]|\\\\+\\-=*/&]")
+    val symbolRegex = Regex("[{}()<>,.'\"\\[\\]|\\\\+\\-=*/&:]")
 
     fun tokenize(value: String): ArrayList<Token> {
         val tokenArray = arrayListOf<Token>()
