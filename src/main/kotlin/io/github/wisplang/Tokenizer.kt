@@ -1,7 +1,6 @@
 package io.github.wisplang
 
 class Tokenizer {
-
     enum class Type {
         LEFTPARENTHESIS,
         RIGHTPARENTHESIS,
@@ -16,7 +15,7 @@ class Tokenizer {
         SUBTRACT('-')
     }
 
-    class Token(val type: Type, val value: String)
+    data class Token(val type: Type, val value: String)
 
     fun lex(value: String): ArrayList<Token> {
         val tokenArray = arrayListOf<Token>()
@@ -27,7 +26,8 @@ class Tokenizer {
             when {
                 character == '"' -> {
                     value.dropLast(value.length)
-                    val string = addCharacterToString(value,i)
+                    val string = addCharacterToString(value,++i)
+                    i = value.indexOf('"', i)
                     tokenArray.add(Token(Type.STRING, string))
                 }
                 character == ')' -> {
@@ -36,7 +36,6 @@ class Tokenizer {
                 character == '(' -> {
                     tokenArray.add(Token(Type.LEFTPARENTHESIS, character.toString()))
                 }
-
                 character.isDigit() -> {
                     val integerString = addIntToString(value, i)
                     i+=integerString.length-1
@@ -45,7 +44,6 @@ class Tokenizer {
 
             }
             i++
-
         }
         return tokenArray
     }
@@ -64,15 +62,22 @@ class Tokenizer {
     fun addCharacterToString(value: String, index: Int): String {
         var string = ""
         var i = index
-        while(i < value.length-1) {
-            var char = value.get(i)
-            if(char == '"') {
-                i++
+        while (i < value.length) {
+            val char = value[i]
+
+            when (char) {
+                '"' -> break
+                '\\' -> {
+                    val nextChar = value[++i]
+                    string += when (nextChar) {
+                        '"' -> '"'
+                        'n' -> "\n"
+                        else -> {"\\$nextChar"}
+                    }
+                }
+                else -> string += char
             }
-            else {
-                string += char
-                i++
-            }
+            i++
         }
         return string
     }
