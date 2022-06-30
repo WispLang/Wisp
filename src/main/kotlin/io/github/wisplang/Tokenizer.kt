@@ -6,8 +6,7 @@ object Tokenizer {
         NUMBER,
         STRING,
         NAME,
-        WHITESPACE,
-        BOOLEAN
+        WHITESPACE
     }
     data class Token(val type: Type, val value: String)
 
