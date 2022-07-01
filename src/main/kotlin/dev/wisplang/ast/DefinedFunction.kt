@@ -1,4 +1,4 @@
-package io.github.wisplang.ast
+package dev.wisplang.ast
 
 data class DefinedFunction(
     val returnType: List<BasicType>,

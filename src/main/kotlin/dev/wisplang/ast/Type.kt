@@ -1,4 +1,4 @@
-package io.github.wisplang.ast
+package dev.wisplang.ast
 
 interface BasicType
 

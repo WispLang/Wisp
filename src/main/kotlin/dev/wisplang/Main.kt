@@ -1,4 +1,4 @@
-package io.github.wisplang
+package dev.wisplang
 
 import java.io.File
 

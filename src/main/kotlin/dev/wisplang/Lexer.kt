@@ -1,4 +1,4 @@
-package io.github.wisplang
+package dev.wisplang
 
 object Lexer {
     fun lex(tokens: List<Tokenizer.MatureToken>) {
