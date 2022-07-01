@@ -120,7 +120,22 @@ object Tokenizer {
 
     data class MatureToken(val type: MatureType, val value: String, val idx: Int, val len: Int)
 
-    val keywords = arrayOf("ext", "imp", "match", "in", "is", "prim", "func", "var", "type", "if", "else", "for", "while")
+    val keywords = arrayOf(
+        "else",
+        "enum",
+        "ext",
+        "for",
+        "func",
+        "if",
+        "imp",
+        "in",
+        "is",
+        "match",
+        "prim",
+        "type",
+        "var",
+        "while"
+    )
     val primitives = arrayOf("u1", "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64")
 
     fun matureTokens(tokens: List<Token>): List<MatureToken> {
