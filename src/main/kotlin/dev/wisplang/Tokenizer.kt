@@ -114,7 +114,6 @@ object Tokenizer {
         INTEGER,
         FLOAT,
         STRING,
-        RETURN,
         NAME,
         PRIMITIVE
     }
@@ -135,7 +134,7 @@ object Tokenizer {
                         "-" -> {
                             when (tokens[++i].value) {
                                 ">" ->
-                                    matureTokens.add(MatureToken(MatureType.RETURN, "->", token.idx, 2))
+                                    matureTokens.add(MatureToken(MatureType.SYMBOL, "->", token.idx, 2))
                                 "=" ->
                                     matureTokens.add(MatureToken(MatureType.SYMBOL, "-=", token.idx, 2))
                                 else -> {
