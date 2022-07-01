@@ -1,11 +1,11 @@
 package io.github.wisplang
 
+import java.io.File
+
 
 fun main(args: Array<String>) {
-    while (true) {
-        val stringInput = readLine()!!
-        val tokenList = Tokenizer.tokenize(stringInput)
-        tokenList.forEach { println("${it.type}, ${it.value}: ${it.startIdx}, ${it.endIdx}")  }
-    }
+    val tokenList = Tokenizer.tokenize(File("./test/test.wsp").inputStream().readBytes().toString(Charsets.UTF_8))
+    val matureTokens = Tokenizer.matureTokens(tokenList)
+    matureTokens.forEach { println("${it.type}, ${it.value}: ${it.idx}, ${it.len}")  }
 }
 
