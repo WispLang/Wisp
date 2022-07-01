@@ -180,7 +180,7 @@ object Tokenizer {
                         }
                         ">" -> {
                             when (tokens[++i].value) {
-                                "<" ->
+                                ">" ->
                                     matureTokens.add(MatureToken(MatureType.SYMBOL, ">>", token.idx, 2))
                                 "=" ->
                                     matureTokens.add(MatureToken(MatureType.SYMBOL, ">=", token.idx, 2))
