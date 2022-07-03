@@ -1,10 +1,9 @@
 type TestType [
   var a: i32
   var b: i32
-] {
-  func add(): i32 {
-    -> a + b
-  }
+]
+func add(numbers: TestType): i32 {
+    -> numbers.a + numbers.b
 }
 
 func testConditions(number: i32): u1 {

@@ -11,7 +11,7 @@ enum class PrimitiveTypes : BasicType {
 }
 
 data class DefinedTypeRef(
-    val definedType: String
+    val name: String
 ): BasicType
 
 data class DefinedType(
