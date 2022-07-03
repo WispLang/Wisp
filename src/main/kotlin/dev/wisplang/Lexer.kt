@@ -37,16 +37,21 @@ object Lexer {
 
     fun parseFunction(idx: Int, tokens: List<MatureToken>): Triple<DefinedFunction, Int, String> {
         var i = idx+1
+        // check if the function name is specified
         var current = tokens[i]
         if (current.type != MatureType.NAME) throw Exception()
         val name = tokens[i].value
+        // check if the function has parenthesis
         current = tokens[++i]
         if (current.value != "(") throw Exception()
+        // parse out parameters
         val parameters = HashMap<String, BasicType>()
         while (tokens[++i].type == MatureType.NAME) {
             val paramName = tokens[i].value
+            // check if the param has a type
             if (tokens[++i].value != ":") throw Exception()
             current = tokens[++i]
+            // parse out the type
             var type: BasicType? = null
             when (current.type) {
                 MatureType.PRIMITIVE ->
@@ -59,11 +64,13 @@ object Lexer {
                     throw Exception()
             }
             parameters[paramName] = type!!
+            // check if a close paren
             if (tokens[++i].value == ")") break
-            println(tokens[i].value)
+            // check if comma
             if (tokens[i].value != ",") throw Exception()
         }
         var ret: BasicType? = null
+        // check if function has return type and parse it out
         if (tokens[++i].value == ":") when (tokens[++i].type) {
             MatureType.PRIMITIVE ->
                 for (prim in PrimitiveTypes.values())
@@ -74,8 +81,10 @@ object Lexer {
             else ->
                 throw Exception()
         } else i--
+        // check if function has open brace
         if (tokens[++i].value != "{") throw Exception()
 
+        // TODO: parse out function body
         while (++i < tokens.size) {
             break
         }
