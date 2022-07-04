@@ -1,6 +1,6 @@
 type TestType [
-  var a: i32
-  var b: i32
+  a: i32
+  b: i32
 ]
 func add(numbers: TestType): i32 {
     -> numbers.a + numbers.b

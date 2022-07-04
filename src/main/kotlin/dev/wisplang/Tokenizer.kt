@@ -5,7 +5,8 @@ object Tokenizer {
         SYMBOL,
         NUMBER,
         STRING,
-        NAME
+        NAME,
+        NEWLINE
     }
     data class Token(val type: Type, val value: String, val idx: Int, val len: Int)
 
@@ -20,29 +21,37 @@ object Tokenizer {
             val character = value[i]
             val startPos = i
             when {
-                character == '/' && value[i+1] == '/' ->
-                    while (i < value.length) if (value[++i].toString() == "\n") break
-                character == '/' && value[i+1] == '*' ->
+                character == '/' && value[i+1] == '/' -> {
+                    i = value.indexOf("\n", i)
+                    tokenArray.add(Token(Type.NEWLINE, "\n", i, 1))
+                }
+                character == '/' && value[i+1] == '*' -> {
                     i = value.indexOf("*/", i) + 1
+                    if (value.substring(startPos, i).contains("\n"))
+                        tokenArray.add(Token(Type.NEWLINE, "\n", i, 1))
+                }
                 letterRegex.matches(character.toString()) -> {
                     val nameString = buildNameString(value, i)
                     i += nameString.length-1
-                    tokenArray.add(Token(Type.NAME, nameString, i, nameString.length))
+                    tokenArray.add(Token(Type.NAME, nameString, startPos, nameString.length))
                 }
                 character == '"' -> {
                     value.dropLast(value.length)
                     val string = buildQuotedString(value,++i)
                     val len = string.replace("\"","\\\"").replace("\n","\\n").length
                     i += len
-                    tokenArray.add(Token(Type.STRING, string, i, len))
+                    tokenArray.add(Token(Type.STRING, string, startPos, len))
                 }
                 character.isDigit() -> {
                     val integerString = buildNumString(value, i)
                     i+=integerString.length-1
-                    tokenArray.add(Token(Type.NUMBER, integerString, i, integerString.length))
+                    tokenArray.add(Token(Type.NUMBER, integerString, startPos, integerString.length))
                 }
                 symbolRegex.matches(character.toString()) -> {
-                    tokenArray.add(Token(Type.SYMBOL, character.toString(), i, 1))
+                    tokenArray.add(Token(Type.SYMBOL, character.toString(), startPos, 1))
+                }
+                character.toString() == "\n" -> {
+                    tokenArray.add(Token(Type.NEWLINE, "\n", i, 1))
                 }
             }
             i++
@@ -115,12 +124,14 @@ object Tokenizer {
         FLOAT,
         STRING,
         NAME,
+        NEWLINE,
         PRIMITIVE
     }
 
     data class MatureToken(val type: MatureType, val value: String, val idx: Int, val len: Int)
 
     val keywords = arrayOf(
+        "do",
         "else",
         "enum",
         "ext",
@@ -253,6 +264,9 @@ object Tokenizer {
                         else -> MatureType.NAME
                     }
                     matureTokens.add(MatureToken(type, token.value, token.idx, token.len))
+                }
+                Type.NEWLINE -> {
+                    matureTokens.add(MatureToken(MatureType.NEWLINE, token.value, token.idx, token.len))
                 }
             }
         } while (++i < tokens.size)

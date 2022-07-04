@@ -86,7 +86,7 @@ object Lexer {
 
         // TODO: parse out function body
         while (++i < tokens.size) {
-            break
+
         }
         return Triple(DefinedFunction(ret, parameters, Unit), i, name)
     }
@@ -107,5 +107,83 @@ object Lexer {
 
         } while (++i < tokens.size)
         return Triple(null, i, name)
+    }
+
+    fun parseLine(idx: Int, tokens: List<MatureToken>): Pair<Unit, Int> {
+        var i = idx
+        var token = tokens[i]
+
+        // Check if token is a keyword, a name, or return, else TODO: throw error
+        when (token.type) {
+            MatureType.KEYWORD -> {
+                when (token.value) {
+                    "var" -> {
+                        val local = parseVariable(idx, tokens)
+                        // TODO: Finish local declaration
+                    }
+                    "for" -> {
+                        // TODO: Parse out for loop
+                    }
+                    "while" -> {
+                        // TODO: Parse out while loop
+                    }
+                    "if" -> {
+                        // TODO: Parse out if, if/else, if/elseif, etc
+                    }
+                }
+            }
+            MatureType.NAME -> {
+                // TODO: Parse out function calls vs variable assigns
+            }
+            MatureType.SYMBOL -> {
+                if (token.value == "->") {
+                    // TODO: Parse out expression
+                } else {
+                    // TODO: throw error
+                }
+            }
+            else -> {
+                // TODO: throw error
+            }
+        }
+
+        // TODO: return the operator
+        return Pair(Unit, i)
+    }
+
+    fun parseExpression(idx: Int, tokens: List<MatureToken>): Pair<Unit, Int> {
+        var i = idx
+        val outputQueue = ArrayList<Array<MatureToken>>()
+        val operatorStack = ArrayList<Array<MatureToken>>()
+        while (i < tokens.size) {
+            val token = tokens[i]
+            when (token.type) {
+                MatureType.INTEGER, MatureType.FLOAT, MatureType.STRING ->
+                    outputQueue.add(arrayOf(token))
+                MatureType.NAME -> {
+                    // TODO: parse out function calls vs variable calls
+                }
+                MatureType.SYMBOL -> {
+                    when (token.value) {
+                        //TODO: Figure out precedence for other operators (&&, ||, !)
+                        "+", "-" -> {
+                            // Precedence: 2
+                            // TODO: Pop operators with higher precedence to output queue and push current to operator stack
+                        }
+                        "*", "/" -> {
+                            // Precedence: 3
+                            // TODO: Pop operators with higher precedence to output queue and push current to operator stack
+                        }
+                    }
+                }
+                else -> {
+                    // TODO: throw error
+                }
+            }
+            i++
+        }
+
+        // TODO: return the operator
+        return Pair(Unit, idx)
     }
 }
