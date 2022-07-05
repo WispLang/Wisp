@@ -164,15 +164,35 @@ object Lexer {
                     // TODO: parse out function calls vs variable calls
                 }
                 MatureType.SYMBOL -> {
+                    /** TODO:
+                     * while (
+                     *      there is an operator o2 other than the left parenthesis at the top
+                     *      of the operator stack, and (o2 has greater precedence than o1
+                     *      or they have the same precedence and o1 is left-associative)
+                     * ):
+                     *      pop o2 from the operator stack into the output queue
+                     * push o1 onto the operator stack
+                     * */
                     when (token.value) {
-                        //TODO: Figure out precedence for other operators (&&, ||, !)
+                        "&&" -> {
+                            // Precedence: 1
+                            // Associativity: left
+                        }
                         "+", "-" -> {
                             // Precedence: 2
-                            // TODO: Pop operators with higher precedence to output queue and push current to operator stack
+                            // Associativity: left
                         }
                         "*", "/" -> {
                             // Precedence: 3
-                            // TODO: Pop operators with higher precedence to output queue and push current to operator stack
+                            // Associativity: left
+                        }
+                        "||" -> {
+                            // Precedence: 4
+                            // Associativity: left
+                        }
+                        "!" -> {
+                            // Precedence: 5
+                            // Associativity: right
                         }
                     }
                 }
