@@ -1,8 +1,8 @@
-package dev.wisplang
+package dev.wisplang.wisp
 
-import dev.wisplang.Tokenizer.MatureToken
-import dev.wisplang.Tokenizer.MatureType
-import dev.wisplang.ast.*
+import dev.wisplang.wisp.Tokenizer.MatureToken
+import dev.wisplang.wisp.Tokenizer.MatureType
+import dev.wisplang.wisp.ast.*
 
 object Lexer {
     fun lex(tokens: List<MatureToken>): Root {
@@ -17,7 +17,7 @@ object Lexer {
                     when (token.value) {
                         "func" -> {
                             val triple = parseFunction(i, tokens)
-                            i = triple.second
+                            //i = triple.second
                             functions[triple.third] = triple.first
                         }
                         "type" -> {
@@ -94,9 +94,19 @@ object Lexer {
         var i = idx+1
         if (tokens[i].type != MatureType.NAME) throw Exception()
         val name = tokens[i].value
-        do {
-
-        } while (++i < tokens.size)
+        var type: BasicType?
+        if (tokens[++i].value == ":") when (tokens[++i].type) {
+            MatureType.PRIMITIVE ->
+                for (prim in PrimitiveTypes.values())
+                    if (prim.name.lowercase() == tokens[i].value)
+                        type = prim
+            MatureType.NAME ->
+                type = DefinedTypeRef(tokens[i].value)
+            else ->
+                throw Exception()
+        } else i--
+        var op: Any
+        if (tokens[++i].value == "=") op = parseExpression(++i, tokens)
         return Triple(null, i, name)
     }
     fun parseType(idx: Int, tokens: List<MatureToken>): Triple<DefinedType? ,Int, String> {
@@ -151,20 +161,28 @@ object Lexer {
         return Pair(Unit, i)
     }
 
-    fun parseExpression(idx: Int, tokens: List<MatureToken>): Pair<Unit, Int> {
+    val precedence = arrayOf(arrayOf("&&"), arrayOf("+","-"), arrayOf("*","/"), arrayOf("||"), arrayOf("!"))
+    val rightAssociative = arrayOf("!")
+    val operators = arrayOf("&&","+","-","*","/","||","!")
+    data class PrimitiveOperator(
+        val value: String,
+        val operator: PrimitiveOperator? = null
+    )
+
+    fun parseExpression(idx: Int, tokens: List<MatureToken>): Pair<ArrayList<PrimitiveOperator>, Int> {
         var i = idx
-        val outputQueue = ArrayList<Array<MatureToken>>()
-        val operatorStack = ArrayList<Array<MatureToken>>()
+        val outputQueue = ArrayList<PrimitiveOperator>()
+        val operatorStack = ArrayList<PrimitiveOperator>()
         while (i < tokens.size) {
             val token = tokens[i]
             when (token.type) {
                 MatureType.INTEGER, MatureType.FLOAT, MatureType.STRING ->
-                    outputQueue.add(arrayOf(token))
+                    outputQueue.add(PrimitiveOperator(token.value))
                 MatureType.NAME -> {
                     // TODO: parse out function calls vs variable calls
                 }
                 MatureType.SYMBOL -> {
-                    /** TODO:
+                    /**
                      * while (
                      *      there is an operator o2 other than the left parenthesis at the top
                      *      of the operator stack, and (o2 has greater precedence than o1
@@ -173,37 +191,42 @@ object Lexer {
                      *      pop o2 from the operator stack into the output queue
                      * push o1 onto the operator stack
                      * */
-                    when (token.value) {
-                        "&&" -> {
-                            // Precedence: 1
-                            // Associativity: left
+                    if (token.value in operators) {
+                        for (j in (operatorStack.size - 1)..0) {
+                            if (operatorStack.isEmpty() || i < operatorStack.size) break
+                            val o2 = operatorStack[j]
+                            if (o2.value == "(") break
+                            var o1Prec = 0
+                            for (k in 0..precedence.size) {
+                                if (token.value in precedence[k]) {
+                                    o1Prec = k
+                                    break
+                                }
+                            }
+                            var o2Prec = 0
+                            for (k in 0..precedence.size) {
+                                if (o2.value in precedence[k]) {
+                                    o2Prec = k
+                                    break
+                                }
+                            }
+                            if (o2Prec > o1Prec || (o2Prec > o1Prec && o2.value in rightAssociative))
+                                outputQueue.add(operatorStack.removeLast())
+                            else break
                         }
-                        "+", "-" -> {
-                            // Precedence: 2
-                            // Associativity: left
-                        }
-                        "*", "/" -> {
-                            // Precedence: 3
-                            // Associativity: left
-                        }
-                        "||" -> {
-                            // Precedence: 4
-                            // Associativity: left
-                        }
-                        "!" -> {
-                            // Precedence: 5
-                            // Associativity: right
-                        }
-                    }
+                        operatorStack.add(PrimitiveOperator(token.value))
+                    } else break
                 }
+                MatureType.NEWLINE -> break
                 else -> {
                     // TODO: throw error
                 }
             }
             i++
         }
-
-        // TODO: return the operator
-        return Pair(Unit, idx)
+        if (operatorStack.isNotEmpty())
+            for (j in (operatorStack.size-1)..0)
+                outputQueue.add(operatorStack.removeLast())
+        return Pair(outputQueue, idx)
     }
 }

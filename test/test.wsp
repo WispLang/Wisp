@@ -16,7 +16,7 @@ func testConditions(number: i32): u1 {
     }
 }
 
-var max: i32 = 15
+var max: i32 = 10 + 5
 
 func testLoops(): u1 {
     var num: i32 = 2

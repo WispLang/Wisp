@@ -1,4 +1,4 @@
-package dev.wisplang.ast
+package dev.wisplang.wisp.ast
 
 data class DefinedFunction(
     val returnType: BasicType?,

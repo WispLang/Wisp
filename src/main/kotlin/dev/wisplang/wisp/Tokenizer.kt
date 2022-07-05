@@ -1,4 +1,4 @@
-package dev.wisplang
+package dev.wisplang.wisp
 
 object Tokenizer {
     enum class Type {
