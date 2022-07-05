@@ -182,15 +182,14 @@ object Lexer {
                     // TODO: parse out function calls vs variable calls
                 }
                 MatureType.SYMBOL -> {
-                    /**
-                     * while (
+                    /* while (
                      *      there is an operator o2 other than the left parenthesis at the top
                      *      of the operator stack, and (o2 has greater precedence than o1
                      *      or they have the same precedence and o1 is left-associative)
                      * ):
                      *      pop o2 from the operator stack into the output queue
                      * push o1 onto the operator stack
-                     * */
+                     */
                     if (token.value in operators) {
                         for (j in (operatorStack.size - 1)..0) {
                             if (operatorStack.isEmpty() || i < operatorStack.size) break
