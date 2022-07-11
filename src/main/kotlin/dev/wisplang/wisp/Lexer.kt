@@ -39,17 +39,20 @@ object Lexer {
         var i = idx+1
         // check if the function name is specified
         var current = tokens[i]
-        if (current.type != MatureType.NAME) throw Exception()
+        if (current.type != MatureType.NAME)
+            throw Exception()
         val name = tokens[i].value
         // check if the function has parenthesis
         current = tokens[++i]
-        if (current.value != "(") throw Exception()
+        if (current.value != "(")
+            throw Exception()
         // parse out parameters
         val parameters = HashMap<String, BasicType>()
         while (tokens[++i].type == MatureType.NAME) {
             val paramName = tokens[i].value
             // check if the param has a type
-            if (tokens[++i].value != ":") throw Exception()
+            if (tokens[++i].value != ":")
+                throw Exception()
             current = tokens[++i]
             // parse out the type
             var type: BasicType? = null
@@ -58,31 +61,33 @@ object Lexer {
                     for (prim in PrimitiveTypes.values())
                         if (prim.name.lowercase() == current.value)
                             type = prim
-                MatureType.NAME ->
-                    type = DefinedTypeRef(current.value)
-                else ->
-                    throw Exception()
+                MatureType.NAME -> type = DefinedTypeRef(current.value)
+                else -> throw Exception()
             }
             parameters[paramName] = type!!
             // check if a close paren
-            if (tokens[++i].value == ")") break
+            if (tokens[++i].value == ")")
+                break
             // check if comma
-            if (tokens[i].value != ",") throw Exception()
-        }
-        var ret: BasicType? = null
-        // check if function has return type and parse it out
-        if (tokens[++i].value == ":") when (tokens[++i].type) {
-            MatureType.PRIMITIVE ->
-                for (prim in PrimitiveTypes.values())
-                    if (prim.name.lowercase() == tokens[i].value)
-                        ret = prim
-            MatureType.NAME ->
-                ret = DefinedTypeRef(current.value)
-            else ->
+            if (tokens[i].value != ",")
                 throw Exception()
-        } else i--
+        }
+        var ret: BasicType = VoidType.Void
+        // check if function has return type and parse it out
+        if (tokens[++i].value == ":")
+            when (tokens[++i].type) {
+                MatureType.PRIMITIVE ->
+                    for (prim in PrimitiveTypes.values())
+                        if (prim.name.lowercase() == tokens[i].value)
+                            ret = prim
+                MatureType.NAME -> ret = DefinedTypeRef(current.value)
+                else -> throw Exception()
+            }
+        else
+            i--
         // check if function has open brace
-        if (tokens[++i].value != "{") throw Exception()
+        if (tokens[++i].value != "{")
+            throw Exception()
 
         // TODO: parse out function body
         while (++i < tokens.size) {
@@ -92,26 +97,30 @@ object Lexer {
     }
     fun parseVariable(idx: Int, tokens: List<MatureToken>): Triple<DefinedVariable?, Int, String> {
         var i = idx+1
-        if (tokens[i].type != MatureType.NAME) throw Exception()
+        if (tokens[i].type != MatureType.NAME)
+            throw Exception()
         val name = tokens[i].value
         var type: BasicType?
-        if (tokens[++i].value == ":") when (tokens[++i].type) {
-            MatureType.PRIMITIVE ->
-                for (prim in PrimitiveTypes.values())
-                    if (prim.name.lowercase() == tokens[i].value)
-                        type = prim
-            MatureType.NAME ->
-                type = DefinedTypeRef(tokens[i].value)
-            else ->
-                throw Exception()
-        } else i--
+        if (tokens[++i].value == ":")
+            when (tokens[++i].type) {
+                MatureType.PRIMITIVE ->
+                    for (prim in PrimitiveTypes.values())
+                        if (prim.name.lowercase() == tokens[i].value)
+                            type = prim
+                MatureType.NAME -> type = DefinedTypeRef(tokens[i].value)
+                else -> throw Exception()
+            }
+        else
+            i--
         var op: Any
-        if (tokens[++i].value == "=") op = parseExpression(++i, tokens)
+        if (tokens[++i].value == "=")
+            op = parseExpression(++i, tokens)
         return Triple(null, i, name)
     }
     fun parseType(idx: Int, tokens: List<MatureToken>): Triple<DefinedType? ,Int, String> {
         var i = idx+1
-        if (tokens[i].type != MatureType.NAME) throw Exception()
+        if (tokens[i].type != MatureType.NAME)
+            throw Exception()
         val name = tokens[i].value
         do {
 
@@ -159,14 +168,6 @@ object Lexer {
         return Pair(Unit, i)
     }
 
-    val precedence = arrayOf(arrayOf("&&"), arrayOf("+","-"), arrayOf("*","/"), arrayOf("||"), arrayOf("!"))
-    val rightAssociative = arrayOf("!")
-    val operators = arrayOf("&&","+","-","*","/","||","!")
-    data class PrimitiveOperator(
-        val value: String,
-        val operator: PrimitiveOperator? = null
-    )
-
     fun parseExpression(idx: Int, tokens: List<MatureToken>): Pair<ArrayList<PrimitiveOperator>, Int> {
         var i = idx
         val outputQueue = ArrayList<PrimitiveOperator>()
@@ -174,8 +175,7 @@ object Lexer {
         while (i < tokens.size) {
             val token = tokens[i]
             when (token.type) {
-                MatureType.INTEGER, MatureType.FLOAT, MatureType.STRING ->
-                    outputQueue.add(PrimitiveOperator(token.value))
+                MatureType.INTEGER, MatureType.FLOAT, MatureType.STRING -> outputQueue.add(PrimitiveOperator(token.value))
                 MatureType.NAME -> {
                     // TODO: parse out function calls vs variable calls
                 }
@@ -190,9 +190,11 @@ object Lexer {
                      */
                     if (token.value in operators) {
                         for (j in (operatorStack.size - 1)..0) {
-                            if (operatorStack.isEmpty() || i < operatorStack.size) break
+                            if (operatorStack.isEmpty() || i < operatorStack.size)
+                                break
                             val o2 = operatorStack[j]
-                            if (o2.value == "(") break
+                            if (o2.value == "(")
+                                break
                             var o1Prec = 0
                             for (k in 0..precedence.size) {
                                 if (token.value in precedence[k]) {
@@ -209,10 +211,12 @@ object Lexer {
                             }
                             if (o2Prec > o1Prec || (o2Prec > o1Prec && o2.value in rightAssociative))
                                 outputQueue.add(operatorStack.removeLast())
-                            else break
+                            else
+                                break
                         }
                         operatorStack.add(PrimitiveOperator(token.value))
-                    } else break
+                    } else
+                        break
                 }
                 MatureType.NEWLINE -> break
                 else -> {
@@ -225,5 +229,34 @@ object Lexer {
             for (j in (operatorStack.size-1)..0)
                 outputQueue.add(operatorStack.removeLast())
         return Pair(outputQueue, idx)
+    }
+
+    // TODO: Replace with Operator enum
+    val precedence = arrayOf(arrayOf("&&"), arrayOf("+","-"), arrayOf("*","/"), arrayOf("||"), arrayOf("!"))
+    val rightAssociative = arrayOf("!")
+    val operators = arrayOf("&&","+","-","*","/","||","!")
+
+    data class PrimitiveOperator(
+        val value: Operator,
+        val operator: PrimitiveOperator? = null
+    )
+
+    enum class Operator( val sym: String, val precedence: Int, val rightAssociative: Boolean = false ) {
+        And( "&&",0 ),
+        Add( "+", 1 ),
+        Sub( "-", 1 ),
+        Mul( "*" ,2 ),
+        Div( "/", 2 ),
+        Or ( "||",3 ),
+        Not( "!", 4, true );
+
+        companion object {
+            fun of( value: String ): Operator {
+                for ( op in Operator.values() )
+                    if ( op.sym == value )
+                        return op
+                throw IllegalStateException("Invalid operator: '$value'!")
+            }
+        }
     }
 }
