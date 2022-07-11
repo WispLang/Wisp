@@ -1,276 +1,258 @@
 package dev.wisplang.wisp
 
 object Tokenizer {
-    enum class Type {
-        SYMBOL,
-        NUMBER,
-        STRING,
-        NAME,
-        NEWLINE
-    }
-    data class Token(val type: Type, val value: String, val idx: Int, val len: Int)
+	private val letterRegex = Regex("[a-zA-Z_$]")
+	private val symbolRegex = Regex("[{}()<>,.'\"\\[\\]|\\\\+\\-=*/&:]")
 
-    val letterRegex = Regex("[a-zA-Z_$]")
-    val symbolRegex = Regex("[{}()<>,.'\"\\[\\]|\\\\+\\-=*/&:]")
+	enum class Keywords {
+		DO, ELSE,
+		ENUM, EXT,
+		FOR, FUNC,
+		IF, IMP,
+		IN, IS,
+		MATCH, PRIM,
+		TYPE, VAR,
+		WHILE;
 
-    fun tokenize(value: String): ArrayList<Token> {
-        val tokenArray = arrayListOf<Token>()
+		companion object {
+			private val STRINGS: List<String> = Keywords.values().map { it.name.lowercase() }
 
-        var i = 0
-        while(i < value.length) {
-            val character = value[i]
-            val startPos = i
-            when {
-                character == '/' && value[i+1] == '/' -> {
-                    i = value.indexOf("\n", i)
-                    tokenArray.add(Token(Type.NEWLINE, "\n", i, 1))
-                }
-                character == '/' && value[i+1] == '*' -> {
-                    i = value.indexOf("*/", i) + 1
-                    if (value.substring(startPos, i).contains("\n"))
-                        tokenArray.add(Token(Type.NEWLINE, "\n", i, 1))
-                }
-                letterRegex.matches(character.toString()) -> {
-                    val nameString = buildNameString(value, i)
-                    i += nameString.length-1
-                    tokenArray.add(Token(Type.NAME, nameString, startPos, nameString.length))
-                }
-                character == '"' -> {
-                    value.dropLast(value.length)
-                    val string = buildQuotedString(value,++i)
-                    val len = string.replace("\"","\\\"").replace("\n","\\n").length
-                    i += len
-                    tokenArray.add(Token(Type.STRING, string, startPos, len))
-                }
-                character.isDigit() -> {
-                    val integerString = buildNumString(value, i)
-                    i+=integerString.length-1
-                    tokenArray.add(Token(Type.NUMBER, integerString, startPos, integerString.length))
-                }
-                symbolRegex.matches(character.toString()) -> {
-                    tokenArray.add(Token(Type.SYMBOL, character.toString(), startPos, 1))
-                }
-                character.toString() == "\n" -> {
-                    tokenArray.add(Token(Type.NEWLINE, "\n", i, 1))
-                }
-            }
-            i++
-        }
-        return tokenArray
-    }
+			fun strings() = STRINGS
+		}
+	}
 
-    fun buildNumString(value: String, index: Int): String {
-        var numberString = ""
-        var hadDecimal = false
-        for(i in index..value.length-1) {
-            val char = value[i]
-            if(char.isDigit() ) {
-                numberString += char
-            } else if (!hadDecimal && char == '.') {
-                hadDecimal = true
-                numberString += char
-            } else if (char == '.') {
-                //TODO: Replace with dedicated exception
-                throw Exception("Wisp: Cannot have multiple decimal points in a number")
-            } else if (char.isWhitespace()) {
-                break
-            }
-        }
-        return numberString
-    }
+	fun tokenize(value: String): ArrayList<Token> {
+		val tokenArray = arrayListOf<Token>()
 
-    fun buildQuotedString(value: String, index: Int): String {
-        var string = ""
-        var i = index
-        while (i < value.length) {
-            val char = value[i]
+		var i = 0
+		while (i < value.length) {
+			val character = value[i]
+			val startPos = i
+			when {
+				character == '/' && value[i + 1] == '/' -> {
+					i = value.indexOf("\n", i)
+					tokenArray.add(Token(Type.NEWLINE, "\n", i, 1))
+				}
+				character == '/' && value[i + 1] == '*' -> {
+					i = value.indexOf("*/", i) + 1
+					if (value.substring(startPos, i).contains("\n"))
+						tokenArray.add(Token(Type.NEWLINE, "\n", i, 1))
+				}
+				letterRegex.matches(character.toString()) -> {
+					val nameString = buildNameString(value, i)
+					i += nameString.length - 1
+					tokenArray.add(Token(Type.NAME, nameString, startPos, nameString.length))
+				}
+				character == '"' -> {
+					value.dropLast(value.length)
+					val string = buildQuotedString(value, ++i)
+					val len = string.replace("\"", "\\\"").replace("\n", "\\n").length
+					i += len
+					tokenArray.add(Token(Type.STRING, string, startPos, len))
+				}
+				character.isDigit() -> {
+					val integerString = buildNumString(value, i)
+					i += integerString.length - 1
+					tokenArray.add(Token(Type.NUMBER, integerString, startPos, integerString.length))
+				}
+				symbolRegex.matches(character.toString()) -> tokenArray.add(Token(Type.SYMBOL, character.toString(), startPos, 1))
+				character.toString() == "\n" -> tokenArray.add(Token(Type.NEWLINE, "\n", i, 1))
+			}
+			i++
+		}
+		return tokenArray
+	}
 
-            when (char) {
-                '"' -> break
-                '\\' -> {
-                    val nextChar = value[++i]
-                    string += when (nextChar) {
-                        '"' -> '"'
-                        'n' -> "\n"
-                        else -> {"\\$nextChar"}
-                    }
-                }
-                else -> string += char
-            }
-            i++
-        }
-        return string
-    }
+	fun buildNumString(value: String, index: Int): String {
+		var numberString = ""
+		var hadDecimal = false
+		for (i in index until value.length) {
+			val char = value[i]
+			if (char.isDigit()) {
+				numberString += char
+			} else if (char == '.') {
+				if (hadDecimal)
+					throw TokenizerException("Wisp: Cannot have multiple decimal points in a number")
+				hadDecimal = true
+				numberString += char
+			} else if (char.isWhitespace()) {
+				break
+			}
+		}
+		return numberString
+	}
 
-    fun buildNameString(value: String, index: Int): String {
-        var string = ""
-        var i = index
-        while (i < value.length) {
-            val char = value[i]
+	fun buildQuotedString(value: String, index: Int): String {
+		var string = ""
+		var i = index
+		while (i < value.length) {
+			val char = value[i]
 
-            if (letterRegex.matches(char.toString()) || char.isDigit()) {
-                string += char
-            } else break
-            i++
-        }
-        return string
-    }
+			when (char) {
+				'"' -> break
+				'\\' -> {
+					val nextChar = value[++i]
+					string += when (nextChar) {
+						'"' -> '"'
+						'n' -> "\n"
+						else -> {
+							"\\$nextChar"
+						}
+					}
+				}
+				else -> string += char
+			}
+			i++
+		}
+		return string
+	}
 
+	fun buildNameString(value: String, index: Int): String {
+		var string = ""
+		var i = index
+		while (i < value.length) {
+			val char = value[i]
 
-    enum class MatureType {
-        SYMBOL,
-        KEYWORD,
-        INTEGER,
-        FLOAT,
-        STRING,
-        NAME,
-        NEWLINE,
-        PRIMITIVE
-    }
+			if (letterRegex.matches(char.toString()) || char.isDigit()) {
+				string += char
+			} else break
+			i++
+		}
+		return string
+	}
 
-    data class MatureToken(val type: MatureType, val value: String, val idx: Int, val len: Int)
+	fun matureTokens(tokens: List<Token>): List<MatureToken> {
+		val matureTokens = ArrayList<MatureToken>()
+		var i = 0
+		do {
+			val token = tokens[i]
+			matureTokens.add(when (token.type) {
+				Type.SYMBOL -> {
+					when (token.value) {
+						"-" -> {
+							when (tokens[++i].value) {
+								">" -> MatureToken(MatureType.SYMBOL, "->", token.idx, 2)
+								"=" -> MatureToken(MatureType.SYMBOL, "-=", token.idx, 2)
+								else -> {
+									i--
+									MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+								}
+							}
+						}
+						"+" -> {
+							when (tokens[++i].value) {
+								"+" -> MatureToken(MatureType.SYMBOL, "++", token.idx, 2)
+								"=" -> MatureToken(MatureType.SYMBOL, "+=", token.idx, 2)
+								else -> {
+									i--
+									MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+								}
+							}
+						}
+						"=" -> {
+							when (tokens[++i].value) {
+								"=" -> MatureToken(MatureType.SYMBOL, "==", token.idx, 2)
+								else -> {
+									i--
+									MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+								}
+							}
+						}
+						"<" -> {
+							when (tokens[++i].value) {
+								"<" -> MatureToken(MatureType.SYMBOL, "<<", token.idx, 2)
+								"=" -> MatureToken(MatureType.SYMBOL, "<=", token.idx, 2)
+								else -> {
+									i--
+									MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+								}
+							}
+						}
+						">" -> {
+							when (tokens[++i].value) {
+								">" -> MatureToken(MatureType.SYMBOL, ">>", token.idx, 2)
+								"=" -> MatureToken(MatureType.SYMBOL, ">=", token.idx, 2)
+								else -> {
+									i--
+									MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+								}
+							}
+						}
+						"!" -> {
+							when (tokens[++i].value) {
+								"=" -> MatureToken(MatureType.SYMBOL, "!=", token.idx, 2)
+								else -> {
+									i--
+									MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+								}
+							}
+						}
+						"&" -> {
+							when (tokens[++i].value) {
+								"&" -> MatureToken(MatureType.SYMBOL, "&&", token.idx, 2)
+								else -> {
+									i--
+									MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+								}
+							}
+						}
+						"|" -> {
+							when (tokens[++i].value) {
+								"|" -> MatureToken(MatureType.SYMBOL, "||", token.idx, 2)
+								else -> {
+									i--
+									MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+								}
+							}
+						}
+						else -> MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+					}
+				}
+				Type.STRING -> MatureToken(MatureType.STRING, token.value, token.idx, token.len)
+				Type.NUMBER -> MatureToken(
+					if (token.value.contains(".")) MatureType.FLOAT else MatureType.INTEGER,
+					token.value,
+					token.idx,
+					token.len
+				)
+				Type.NAME -> MatureToken(
+					when (token.value) {
+						in Keywords.strings() -> MatureType.KEYWORD
+						in Primitive.strings() -> MatureType.PRIMITIVE
+						else -> MatureType.NAME
+					},
+					token.value,
+					token.idx,
+					token.len
+				)
+				Type.NEWLINE -> MatureToken(MatureType.NEWLINE, token.value, token.idx, 1)
+			}
+			)
+		} while (++i < tokens.size)
 
-    val keywords = arrayOf(
-        "do",
-        "else",
-        "enum",
-        "ext",
-        "for",
-        "func",
-        "if",
-        "imp",
-        "in",
-        "is",
-        "match",
-        "prim",
-        "type",
-        "var",
-        "while"
-    )
-    val primitives = arrayOf("u1", "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64")
+		return matureTokens
+	}
 
-    fun matureTokens(tokens: List<Token>): List<MatureToken> {
-        val matureTokens = ArrayList<MatureToken>()
-        var i = 0;
-        do {
-            val token = tokens[i]
-            when (token.type) {
-                Type.SYMBOL -> {
-                    when (token.value) {
-                        "-" -> {
-                            when (tokens[++i].value) {
-                                ">" ->
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, "->", token.idx, 2))
-                                "=" ->
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, "-=", token.idx, 2))
-                                else -> {
-                                    i--
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len))
-                                }
-                            }
-                        }
-                        "+" -> {
-                            when (tokens[++i].value) {
-                                "+" ->
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, "++", token.idx, 2))
-                                "=" ->
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, "+=", token.idx, 2))
-                                else -> {
-                                    i--
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len))
-                                }
-                            }
-                        }
-                        "=" -> {
-                            when (tokens[++i].value) {
-                                "=" ->
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, "==", token.idx, 2))
-                                else -> {
-                                    i--
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len))
-                                }
-                            }
-                        }
-                        "<" -> {
-                            when (tokens[++i].value) {
-                                "<" ->
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, "<<", token.idx, 2))
-                                "=" ->
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, "<=", token.idx, 2))
-                                else ->{
-                                    i--
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len))
-                                }
-                            }
-                        }
-                        ">" -> {
-                            when (tokens[++i].value) {
-                                ">" ->
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, ">>", token.idx, 2))
-                                "=" ->
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, ">=", token.idx, 2))
-                                else ->{
-                                    i--
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len))
-                                }
-                            }
-                        }
-                        "!" -> {
-                            when (tokens[++i].value) {
-                                "=" ->
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, "!=", token.idx, 2))
-                                else -> {
-                                    i--
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len))
-                                }
-                            }
-                        }
-                        "&" -> {
-                            when (tokens[++i].value) {
-                                "&" ->
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, "&&", token.idx, 2))
-                                else -> {
-                                    i--
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len))
-                                }
-                            }
-                        }
-                        "|" -> {
-                            when (tokens[++i].value) {
-                                "|" ->
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, "||", token.idx, 2))
-                                else ->{
-                                    i--
-                                    matureTokens.add(MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len))
-                                }
-                            }
-                        }
-                        else ->
-                            matureTokens.add(MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len))
-                    }
-                }
-                Type.STRING ->
-                    matureTokens.add(MatureToken(MatureType.STRING, token.value, token.idx, token.len))
-                Type.NUMBER -> {
-                    val type: MatureType = if (token.value.contains("."))
-                        MatureType.FLOAT
-                    else MatureType.INTEGER
-                    matureTokens.add(MatureToken(type, token.value, token.idx, token.len))
-                }
-                Type.NAME -> {
-                    val type = when (token.value) {
-                        in keywords -> MatureType.KEYWORD
-                        in primitives -> MatureType.PRIMITIVE
-                        else -> MatureType.NAME
-                    }
-                    matureTokens.add(MatureToken(type, token.value, token.idx, token.len))
-                }
-                Type.NEWLINE -> {
-                    matureTokens.add(MatureToken(MatureType.NEWLINE, token.value, token.idx, token.len))
-                }
-            }
-        } while (++i < tokens.size)
+	enum class Type {
+		SYMBOL,
+		NUMBER,
+		STRING,
+		NAME,
+		NEWLINE
+	}
 
-        return matureTokens
-    }
+	data class Token(val type: Type, val value: String, val idx: Int, val len: Int)
+
+	enum class MatureType {
+		SYMBOL,
+		KEYWORD,
+		INTEGER,
+		FLOAT,
+		STRING,
+		NAME,
+		NEWLINE,
+		PRIMITIVE
+	}
+
+	data class MatureToken(val type: MatureType, val value: String, val idx: Int, val len: Int)
 }

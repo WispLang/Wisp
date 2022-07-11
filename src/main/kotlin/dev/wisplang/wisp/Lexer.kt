@@ -123,7 +123,7 @@ object Lexer {
         var i = idx
         var token = tokens[i]
 
-        // Check if token is a keyword, a name, or return, else TODO: throw error
+        // Check if token is a keyword, a name, or return, else throw error
         when (token.type) {
             MatureType.KEYWORD -> {
                 when (token.value) {
@@ -152,9 +152,7 @@ object Lexer {
                     // TODO: throw error
                 }
             }
-            else -> {
-                // TODO: throw error
-            }
+            else -> throw LexerException("Expected keyword, name, or a return; but got '${token.type}'")
         }
 
         // TODO: return the operator
