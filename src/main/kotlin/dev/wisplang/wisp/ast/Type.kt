@@ -1,5 +1,7 @@
 package dev.wisplang.wisp.ast
 
+import dev.wisplang.wisp.ast.Ast.DefinedVariable
+
 interface BaseType {
     companion object {
         fun findType(name: String): BaseType {
