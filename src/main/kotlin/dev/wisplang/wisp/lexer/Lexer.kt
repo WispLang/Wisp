@@ -104,7 +104,7 @@ class Lexer {
 
         consumeOrThrow( "Expected `{` symbol after `header` in function declaration!", "{", MatureType.SYMBOL )
 
-        // TODO: parse out function body
+        // -> paramName.int + 12
         val statements = ArrayList<Statement>()
         while ( ++i < tokens.size && !peekIs( MatureType.SYMBOL, "}" ) ) {
             statements.add( parseStatement()!! )  // TODO: Remove after statements are impl
@@ -176,6 +176,12 @@ class Lexer {
         return DefinedType( name, vars )
     }
 
+    /**
+     * Parsers a statement
+     * ```
+     * -> paramName.int + 12
+     * ```
+     */
     fun parseStatement(): Statement? {
         // Check if token is a keyword, a name, or return, else throw error
         match {
