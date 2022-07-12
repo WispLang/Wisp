@@ -1,68 +1,85 @@
-package dev.wisplang.wisp
+package dev.wisplang.wisp.lexer
 
+import dev.wisplang.wisp.LexerException
 import dev.wisplang.wisp.Tokenizer.MatureToken
 import dev.wisplang.wisp.Tokenizer.MatureType
 import dev.wisplang.wisp.ast.*
+import dev.wisplang.wisp.util.TokenMatch.match
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
-object Lexer {
+class Lexer {
+    private val functions = HashMap<String, DefinedFunction>()
+    private val types = HashMap<String, DefinedType>()
+    private val globals = HashMap<String, DefinedVariable>()
+
+    private var tokens: List<MatureToken> = listOf()
+    private var i: Int = 0
+
+    private fun isType( type: MatureType ) = peek(0).type == type
+    private fun peek(offset: Int = 1) = tokens[i + offset]
+    internal fun consume() = tokens[++i]
+    private fun consumeOrThrow( err: String, type: MatureType, value: String? = null ): MatureToken {
+        if ( peek(0).type == type && ( value == null || peek(0).value == value ) )
+            return consume()
+        else
+            throw LexerException(err)
+    }
+
+    private fun consumeIfType( type: MatureType ) {
+        if ( peek(0).type == type )
+            consume()
+    }
+
     fun lex(tokens: List<MatureToken>): Root {
-        var i = 0
-        val functions = HashMap<String, DefinedFunction>()
-        val types = HashMap<String, DefinedType>()
-        val globals = HashMap<String, DefinedVariable>()
+        this.tokens = tokens
+        this.i = 0
+
         do {
-            val token = tokens[i]
-            when (token.type) {
-                MatureType.KEYWORD -> {
-                    when (token.value) {
-                        "func" -> {
-                            val triple = parseFunction(i, tokens)
-                            //i = triple.second
-                            functions[triple.third] = triple.first
-                        }
-                        "type" -> {
-                            val triple = parseType(i, tokens)
-                        }
-                        "var" -> {
-                            val triple = parseVariable(i, tokens)
-                        }
-                        else -> {}
-                    }
+            match {
+                on( MatureType.KEYWORD, "func" ) {
+                    val func = parseFunction()
+                    functions[func.name] = func
                 }
-                else -> {}
+                on(MatureType.KEYWORD, "type") {
+                    val triple = parseType()
+                }
+                on(MatureType.KEYWORD, "var") {
+                    val triple = parseVariable()
+                }
+                default { }
             }
         } while (++i < tokens.size)
         return Root(types, globals, functions)
     }
 
-    fun parseFunction(idx: Int, tokens: List<MatureToken>): Triple<DefinedFunction, Int, String> {
-        var i = idx + 1
+    private fun parseFunction(): DefinedFunction {
         // check if the function name is specified
         var current = tokens[i]
         if (current.type != MatureType.NAME)
-            throw Exception()
+            throw LexerException("")
         val name = tokens[i].value
         // check if the function has parenthesis
         current = tokens[++i]
         if (current.value != "(")
-            throw Exception()
+            throw LexerException("")
         // parse out parameters
-        val parameters = HashMap<String, BasicType>()
+        val parameters = HashMap<String, BaseType>()
         while (tokens[++i].type == MatureType.NAME) {
             val paramName = tokens[i].value
             // check if the param has a type
             if (tokens[++i].value != ":")
-                throw Exception()
+                throw LexerException("")
             current = tokens[++i]
             // parse out the type
-            var type: BasicType? = null
+            var type: BaseType? = null
             when (current.type) {
                 MatureType.PRIMITIVE ->
                     for (prim in PrimitiveTypes.values())
                         if (prim.name.lowercase() == current.value)
                             type = prim
                 MatureType.NAME -> type = DefinedTypeRef(current.value)
-                else -> throw Exception()
+                else -> throw LexerException("")
             }
             parameters[paramName] = type!!
             // check if a close paren
@@ -70,9 +87,9 @@ object Lexer {
                 break
             // check if comma
             if (tokens[i].value != ",")
-                throw Exception()
+                throw LexerException("")
         }
-        var ret: BasicType = VoidType.Void
+        var ret: BaseType = VoidType.Void
         // check if function has return type and parse it out
         if (tokens[++i].value == ":")
             when (tokens[++i].type) {
@@ -81,27 +98,26 @@ object Lexer {
                         if (prim.name.lowercase() == tokens[i].value)
                             ret = prim
                 MatureType.NAME -> ret = DefinedTypeRef(current.value)
-                else -> throw Exception()
+                else -> throw LexerException("")
             }
         else
             i--
         // check if function has open brace
         if (tokens[++i].value != "{")
-            throw Exception()
+            throw LexerException("")
 
         // TODO: parse out function body
         while (++i < tokens.size) {
 
         }
-        return Triple(DefinedFunction(ret, parameters, Unit), i, name)
+        return DefinedFunction(ret, parameters, Unit)
     }
 
-    fun parseVariable(idx: Int, tokens: List<MatureToken>): Triple<DefinedVariable?, Int, String> {
-        var i = idx + 1
+    private fun parseVariable(): DefinedVariable? {
         if (tokens[i].type != MatureType.NAME)
-            throw Exception()
+            throw LexerException("")
         val name = tokens[i].value
-        var type: BasicType?
+        var type: BaseType?
         if (tokens[++i].value == ":")
             when (tokens[++i].type) {
                 MatureType.PRIMITIVE ->
@@ -109,69 +125,75 @@ object Lexer {
                         if (prim.name.lowercase() == tokens[i].value)
                             type = prim
                 MatureType.NAME -> type = DefinedTypeRef(tokens[i].value)
-                else -> throw Exception()
+                else -> throw LexerException("")
             }
         else
             i--
-        var op: Any
+        val op: Any
         if (tokens[++i].value == "=")
             op = parseExpression(++i, tokens)
-        return Triple(null, i, name)
+        return null
     }
 
-    fun parseType(idx: Int, tokens: List<MatureToken>): Triple<DefinedType?, Int, String> {
-        var i = idx + 1
-        if (tokens[i].type != MatureType.NAME)
-            throw Exception()
-        val name = tokens[i].value
-        do {
+    /*
+    * Parsers a type structure
+    * type Name [
+    *   foo: i64
+    *   bar: u1
+    * ]
+    * NOTE: `type` has already been removed
+    */
+    private fun parseType(): DefinedType {
+        // Name
+        val name = consumeOrThrow("Expected `name` after `type` keyword!", MatureType.NAME).value
+        // [
+        consumeOrThrow( "Expected `[` symbol after `name` in type declaration!", MatureType.SYMBOL, "[" )
+        // variables
+        val vars = ArrayList<DefinedVariable>()
+        while ( ++i < tokens.size && isType( MatureType.NAME ) ) {
+            vars.add( parseVariable()!! ) // TODO: Remove after adding variables
+            consumeOrThrow( "Expected `newline` after `var` declaration", MatureType.NEWLINE )
+        }
 
-        } while (++i < tokens.size)
-        return Triple(null, i, name)
+        consumeOrThrow( "Expected `]` symbol after `newline` in type declaration!", MatureType.SYMBOL, "]" ) // ]
+        return DefinedType( name, vars )
     }
 
-    fun parseLine(idx: Int, tokens: List<MatureToken>): Pair<Unit, Int> {
-        var i = idx
-        var token = tokens[i]
-
+    fun parseLine(): Operator? {
         // Check if token is a keyword, a name, or return, else throw error
-        when (token.type) {
-            MatureType.KEYWORD -> {
-                when (token.value) {
-                    "var" -> {
-                        val local = parseVariable(idx, tokens)
-                        // TODO: Finish local declaration
-                    }
-                    "for" -> {
-                        // TODO: Parse out for loop
-                    }
-                    "while" -> {
-                        // TODO: Parse out while loop
-                    }
-                    "if" -> {
-                        // TODO: Parse out if, if/else, if/elseif, etc
-                    }
-                }
+        match {
+            on( MatureType.KEYWORD, "var" ) {
+                val local = parseVariable()
+                // TODO: Finish local declaration
             }
-            MatureType.NAME -> {
+            on( MatureType.KEYWORD, "for" ) {
+                // TODO: Parse out for loop
+            }
+            on( MatureType.KEYWORD, "while" ) {
+                // TODO: Parse out while loop
+            }
+            on( MatureType.KEYWORD, "if" ) {
+                // TODO: Parse out if, if/else, if/elseif, etc
+            }
+            on( MatureType.NAME ) {
                 // TODO: Parse out function calls vs variable assigns
             }
-            MatureType.SYMBOL -> {
-                if (token.value == "->") {
-                    // TODO: Parse out expression
-                } else {
-                    // TODO: throw error
-                }
+            on( MatureType.SYMBOL, "->" ) {
+                // TODO: Parse out expression
             }
-            else -> throw LexerException("Expected keyword, name, or a return; but got '${token.type}'")
+            on( MatureType.SYMBOL ) {
+                // TODO: throw error
+            }
+            default {
+                throw LexerException("Expected keyword, name, or a return; but got '${consume()}'")
+            }
         }
 
         // TODO: return the operator
-        return Pair(Unit, i)
+        return null
     }
 
-    fun parseExpression(idx: Int, tokens: List<MatureToken>): Pair<ArrayList<PrimitiveOperator>, Int> {
-        var i = idx
+    private fun parseExpression(): ArrayList<PrimitiveOperator> {
         val outputQueue = ArrayList<PrimitiveOperator>()
         val operatorStack = ArrayList<PrimitiveOperator>()
         while (i < tokens.size) {
@@ -215,33 +237,6 @@ object Lexer {
         if (operatorStack.isNotEmpty())
             for (j in (operatorStack.size - 1)..0)
                 outputQueue.add(operatorStack.removeLast())
-        return Pair(outputQueue, idx)
-    }
-
-    data class PrimitiveOperator(val value: Operator, val operator: PrimitiveOperator? = null) {
-        constructor(value: String, operator: PrimitiveOperator? = null) : this( Operator.of(value), operator )
-    }
-
-    enum class Operator(val sym: String, val precedence: Int, val rightAssociative: Boolean = false) {
-        And("&&", 0),
-        Add("+", 1),
-        Sub("-", 1),
-        Mul("*", 2),
-        Div("/", 2),
-        Or("||", 3),
-        Not("!", 4, true);
-
-        companion object {
-            private val STRINGS: List<String> = Operator.values().map { it.sym }
-
-            fun of(value: String): Operator {
-                for (op in Operator.values())
-                    if (op.sym == value)
-                        return op
-                throw IllegalStateException("Invalid operator: '$value'!")
-            }
-
-            operator fun contains(value: String) = value in STRINGS
-        }
+        return outputQueue
     }
 }

@@ -1,7 +1,8 @@
 package dev.wisplang.wisp.ast
 
 data class DefinedFunction(
-    val returnType: BasicType,
-    val parameters: Map<String, BasicType>,
-    val operators: Unit
+    val name: String,
+    val returnType: BaseType,
+	val parameters: Map<String, BaseType>,
+	val operators: Unit
 )

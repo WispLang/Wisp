@@ -1,5 +1,6 @@
 package dev.wisplang.wisp
 
+import dev.wisplang.wisp.lexer.Lexer
 import java.io.File
 
 
