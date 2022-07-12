@@ -1,6 +1,7 @@
 package dev.wisplang.wisp
 
 import dev.wisplang.wisp.lexer.Lexer
+import dev.wisplang.wisp.tokenizer.Tokenizer
 import java.io.File
 
 

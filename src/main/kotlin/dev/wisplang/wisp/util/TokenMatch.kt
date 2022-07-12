@@ -1,7 +1,7 @@
 package dev.wisplang.wisp.util
 
-import dev.wisplang.wisp.Tokenizer.MatureToken
-import dev.wisplang.wisp.Tokenizer.MatureType
+import dev.wisplang.wisp.tokenizer.Tokenizer.MatureToken
+import dev.wisplang.wisp.tokenizer.Tokenizer.MatureType
 import dev.wisplang.wisp.lexer.Lexer
 
 object TokenMatch {

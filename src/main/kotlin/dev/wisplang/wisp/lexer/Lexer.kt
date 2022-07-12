@@ -1,8 +1,8 @@
 package dev.wisplang.wisp.lexer
 
 import dev.wisplang.wisp.LexerException
-import dev.wisplang.wisp.Tokenizer.MatureToken
-import dev.wisplang.wisp.Tokenizer.MatureType
+import dev.wisplang.wisp.tokenizer.Tokenizer.MatureToken
+import dev.wisplang.wisp.tokenizer.Tokenizer.MatureType
 import dev.wisplang.wisp.ast.*
 import dev.wisplang.wisp.util.TokenMatch.match
 import kotlin.collections.ArrayList
@@ -10,6 +10,7 @@ import kotlin.collections.HashMap
 import dev.wisplang.wisp.ast.Ast.DefinedVariable
 import dev.wisplang.wisp.ast.Ast.DefinedFunction
 import dev.wisplang.wisp.ast.Ast.Root
+import dev.wisplang.wisp.tokenizer.MatureType
 
 
 class Lexer {

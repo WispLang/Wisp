@@ -1,25 +1,11 @@
-package dev.wisplang.wisp
+package dev.wisplang.wisp.tokenizer
+
+import dev.wisplang.wisp.Primitive
+import dev.wisplang.wisp.TokenizerException
 
 object Tokenizer {
     private val letterRegex = Regex("[a-zA-Z_$]")
     private val symbolRegex = Regex("[{}()<>,.'\"\\[\\]|\\\\+\\-=*/&:]")
-
-    enum class Keywords {
-        DO, ELSE,
-        ENUM, EXT,
-        FOR, FUNC,
-        IF, IMP,
-        IN, IS,
-        MATCH, PRIM,
-        TYPE, VAR,
-        WHILE;
-
-        companion object {
-            private val STRINGS: List<String> = Keywords.values().map { it.name.lowercase() }
-
-            fun strings() = STRINGS
-        }
-    }
 
     fun tokenize(value: String): ArrayList<Token> {
         val tokenArray = arrayListOf<Token>()
@@ -232,27 +218,4 @@ object Tokenizer {
 
         return matureTokens
     }
-
-    enum class Type {
-        SYMBOL,
-        NUMBER,
-        STRING,
-        NAME,
-        NEWLINE
-    }
-
-    data class Token(val type: Type, val value: String, val idx: Int, val len: Int)
-
-    enum class MatureType {
-        SYMBOL,
-        KEYWORD,
-        INTEGER,
-        FLOAT,
-        STRING,
-        NAME,
-        NEWLINE,
-        PRIMITIVE
-    }
-
-    data class MatureToken(val type: MatureType, val value: String, val idx: Int, val len: Int)
 }
