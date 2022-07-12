@@ -1,15 +1,11 @@
 package dev.wisplang.wisp.lexer
 
 import dev.wisplang.wisp.LexerException
-import dev.wisplang.wisp.tokenizer.Tokenizer.MatureToken
-import dev.wisplang.wisp.tokenizer.Tokenizer.MatureType
 import dev.wisplang.wisp.ast.*
+import dev.wisplang.wisp.tokenizer.MatureToken
 import dev.wisplang.wisp.util.TokenMatch.match
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
-import dev.wisplang.wisp.ast.Ast.DefinedVariable
-import dev.wisplang.wisp.ast.Ast.DefinedFunction
-import dev.wisplang.wisp.ast.Ast.Root
 import dev.wisplang.wisp.tokenizer.MatureType
 
 
@@ -177,7 +173,7 @@ class Lexer {
         // variables
         val vars = ArrayList<DefinedVariable>()
         while ( ++i < tokens.size && isType( MatureType.NAME ) ) {
-            vars.add( parseVariable()!! ) // TODO: Remove after adding variables
+            vars.add( parseVariable() )
             consumeOrThrow( "Expected `newline` after `var` declaration", MatureType.NEWLINE )
         }
 
@@ -232,7 +228,7 @@ class Lexer {
                 MatureType.SYMBOL -> {
                     /* while (
                      *      there is an operator o2 other than the left parenthesis at the top
-                     *      of the operator stack, and (o2 has greater precedence than o1
+                     *      of the operator stack, and (o2 has greater precedence than o1,
                      *      or they have the same precedence and o1 is left-associative)
                      * ):
                      *      pop o2 from the operator stack into the output queue
