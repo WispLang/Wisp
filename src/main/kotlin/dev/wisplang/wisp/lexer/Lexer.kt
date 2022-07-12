@@ -9,27 +9,19 @@ import kotlin.collections.HashMap
 import dev.wisplang.wisp.tokenizer.MatureType
 
 
+@Suppress("SameParameterValue")
 class Lexer {
-    private val functions = HashMap<String, DefinedFunction>()
-    private val types = HashMap<String, DefinedType>()
-    private val globals = HashMap<String, DefinedVariable>()
-
     private var tokens: List<MatureToken> = listOf()
     private var i: Int = 0
 
-    private fun isType( type: MatureType ) = peek(0).type == type
     private fun peek( offset: Int = 1 ) = tokens[i + offset]
     internal fun consume() = tokens[++i]
 
-    private fun peekIs( type: MatureType, value: String? = null, offset: Int = 1 ) =
+    private fun peekIs( type: MatureType, value: String? = null, offset: Int = 0 ) =
         peek( offset ).type == type && ( value == null || peek( offset ).value == value )
 
-    private fun consumeOrThrow( err: String, vararg types: MatureType ): MatureToken {
-        if ( peek(0).type in types )
-            return consume()
-        else
-            throw LexerException(err)
-    }
+    private fun consumeOrThrow( err: String, vararg types: MatureType ) =
+        if ( peek(0).type in types ) consume() else throw LexerException(err)
 
     private fun consumeOrThrow( err: String, value: String, vararg types: MatureType ): MatureToken {
         if ( peek(0).type in types && peek(0).value == value )
@@ -38,12 +30,19 @@ class Lexer {
             throw LexerException(err)
     }
 
-    private fun consumeIfType( type: MatureType ) {
-        if ( peek(0).type == type )
+    private fun consumeIfIs( type: MatureType, value: String? = null ): Boolean {
+        if ( peekIs( type, value ) ) {
             consume()
+            return true
+        }
+        return false
     }
 
     fun lex(tokens: List<MatureToken>): Root {
+        val functions = HashMap<String, DefinedFunction>()
+        val types = HashMap<String, DefinedType>()
+        val globals = HashMap<String, DefinedVariable>()
+
         this.tokens = tokens
         this.i = 0
 
@@ -54,81 +53,75 @@ class Lexer {
                     functions[func.name] = func
                 }
                 on(MatureType.KEYWORD, "type") {
-                    val triple = parseType()
+                    val type = parseType()
+                    types[type.name] = type
                 }
                 on(MatureType.KEYWORD, "var") {
-                    val triple = parseVariable()
+                    val variabl = parseVariable()
+                    globals[variabl.name] = variabl
                 }
-                default { }
+                default {
+                    throw LexerException( "Expected `func`, `type` or `var` keywords, got $this" )
+                }
             }
         } while (++i < tokens.size)
         return Root(types, globals, functions)
     }
 
+    /**
+     * Parsers a function declaration
+     * ```
+     * func Name(paramName: ParamType): i32 {
+     *     -> paramName.int + 12
+     * }
+     * ```
+     * NOTE: `func` has already been removed before this is called!
+     */
     private fun parseFunction(): DefinedFunction {
         // check if the function name is specified
-        var current = tokens[i]
-        if (current.type != MatureType.NAME)
-            throw LexerException("")
-        val name = tokens[i].value
-        // check if the function has parenthesis
-        current = tokens[++i]
-        if (current.value != "(")
-            throw LexerException("")
-        // parse out parameters
-        val parameters = HashMap<String, BaseType>()
-        while (tokens[++i].type == MatureType.NAME) {
-            val paramName = tokens[i].value
-            // check if the param has a type
-            if (tokens[++i].value != ":")
-                throw LexerException("")
-            current = tokens[++i]
-            // parse out the type
-            var type: BaseType? = null
-            when (current.type) {
-                MatureType.PRIMITIVE ->
-                    for (prim in PrimitiveTypes.values())
-                        if (prim.name.lowercase() == current.value)
-                            type = prim
-                MatureType.NAME -> type = DefinedTypeRef(current.value)
-                else -> throw LexerException("")
-            }
-            parameters[paramName] = type!!
-            // check if a close paren
-            if (tokens[++i].value == ")")
-                break
-            // check if comma
-            if (tokens[i].value != ",")
-                throw LexerException("")
+        // Name
+        val name = consumeOrThrow( "Expected `name` after `func` keyword in function declaration!", MatureType.NAME ).value
+
+        // (
+        consumeOrThrow( "Expected `(` symbol after `name` in function declaration!", "(", MatureType.SYMBOL )
+
+        // paramName: ParamType
+        val params = mutableListOf<DefinedVariable>()
+        while ( ++i < tokens.size && peekIs( MatureType.NAME ) ) {
+            params.add( parseVariable() )
+
+            if ( peekIs( MatureType.NAME ) )
+                throw LexerException("Expected `)` or `,` symbols after `param` in function declaration!")
+
+            consumeIfIs( MatureType.SYMBOL, "," )
         }
-        var ret: BaseType = VoidType.Void
-        // check if function has return type and parse it out
-        if (tokens[++i].value == ":")
-            when (tokens[++i].type) {
-                MatureType.PRIMITIVE ->
-                    for (prim in PrimitiveTypes.values())
-                        if (prim.name.lowercase() == tokens[i].value)
-                            ret = prim
-                MatureType.NAME -> ret = DefinedTypeRef(current.value)
-                else -> throw LexerException("")
-            }
-        else
-            i--
-        // check if function has open brace
-        if (tokens[++i].value != "{")
-            throw LexerException("")
+
+        // )
+        consumeOrThrow( "Expected `)` symbol after `params` in function declaration!", ")", MatureType.SYMBOL )
+
+        // : i32
+        val type = if ( consumeIfIs( MatureType.SYMBOL, ":" ) ) parseTypeReference( "function" ) else VoidType.Void
+
+        consumeOrThrow( "Expected `{` symbol after `header` in function declaration!", "{", MatureType.SYMBOL )
 
         // TODO: parse out function body
-        while (++i < tokens.size) {
-
+        val statements = ArrayList<Statement>()
+        while ( ++i < tokens.size && !peekIs( MatureType.SYMBOL, "}" ) ) {
+            statements.add( parseStatement()!! )  // TODO: Remove after statements are impl
+            consumeOrThrow( "Expected `newline` after `statement` in function declaration!", MatureType.NEWLINE )
         }
-        return DefinedFunction(ret, parameters, Unit)
+
+        consumeOrThrow( "Expected `}` symbol after `body` in function declaration!", "}", MatureType.SYMBOL )
+
+        return DefinedFunction( name, type, params, Unit )
     }
 
     /**
      * Parsers a variable declaration
      *
      * `bar: u1`
+     *
+     * NOTE: `var` has already been removed before this is called!
      */
     private fun parseVariable(): DefinedVariable {
         // bar
@@ -136,14 +129,7 @@ class Lexer {
         // :
         consumeOrThrow( "Expected `:` symbol after `name` in variable declaration!", ":", MatureType.SYMBOL )
         // u1
-        val type = BaseType.findType(
-            consumeOrThrow(
-                "Expected `name` or `primitive` after `:` symbol in variable declaration!",
-                ":",
-                MatureType.PRIMITIVE,
-                MatureType.NAME
-            ).value
-        )
+        val type = parseTypeReference( "variable" )
 
         return DefinedVariable(
             name,
@@ -154,6 +140,15 @@ class Lexer {
                 null
         )
     }
+
+    private fun parseTypeReference( where: String ) =  BaseType.findType(
+        consumeOrThrow(
+            "Expected `name` or `primitive` after `:` symbol in $where declaration!",
+            ":",
+            MatureType.PRIMITIVE,
+            MatureType.NAME
+        ).value
+    )
 
     /**
      * Parsers a type structure
@@ -172,7 +167,7 @@ class Lexer {
         consumeOrThrow( "Expected `[` symbol after `name` in type declaration!", "[", MatureType.SYMBOL )
         // variables
         val vars = ArrayList<DefinedVariable>()
-        while ( ++i < tokens.size && isType( MatureType.NAME ) ) {
+        while ( ++i < tokens.size && peekIs( MatureType.NAME ) ) {
             vars.add( parseVariable() )
             consumeOrThrow( "Expected `newline` after `var` declaration", MatureType.NEWLINE )
         }
@@ -181,7 +176,7 @@ class Lexer {
         return DefinedType( name, vars )
     }
 
-    fun parseLine(): Operator? {
+    fun parseStatement(): Statement? {
         // Check if token is a keyword, a name, or return, else throw error
         match {
             on( MatureType.KEYWORD, "var" ) {
@@ -234,14 +229,14 @@ class Lexer {
                      *      pop o2 from the operator stack into the output queue
                      * push o1 onto the operator stack
                      */
-                    if (token.value in Operator) {
+                    if (token.value in Statement) {
                         for (j in (operatorStack.size - 1)..0) {
                             if (operatorStack.isEmpty() || i < operatorStack.size)
                                 break
                             val op2 = operatorStack[j].value
                             if (op2.sym == "(")
                                 break
-                            val op1 = Operator.of(token.value)
+                            val op1 = Statement.of(token.value)
                             if (op2.precedence > op1.precedence || (op2.precedence > op1.precedence && op2.rightAssociative))
                                 outputQueue.add(operatorStack.removeLast())
                             else

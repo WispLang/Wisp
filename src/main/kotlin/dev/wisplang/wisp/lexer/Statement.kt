@@ -1,6 +1,6 @@
 package dev.wisplang.wisp.lexer
 
-enum class Operator(val sym: String, val precedence: Int, val rightAssociative: Boolean = false) {
+enum class Statement(val sym: String, val precedence: Int, val rightAssociative: Boolean = false) {
     And("&&", 0),
     Add("+", 1),
     Sub("-", 1),
@@ -10,10 +10,10 @@ enum class Operator(val sym: String, val precedence: Int, val rightAssociative: 
     Not("!", 4, true);
 
     companion object {
-        private val STRINGS: List<String> = Operator.values().map { it.sym }
+        private val STRINGS: List<String> = Statement.values().map { it.sym }
 
-        fun of(value: String): Operator {
-            for (op in Operator.values())
+        fun of(value: String): Statement {
+            for (op in Statement.values())
                 if (op.sym == value)
                     return op
             throw IllegalStateException("Invalid operator: '$value'!")

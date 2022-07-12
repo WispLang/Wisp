@@ -1,11 +1,11 @@
 package dev.wisplang.wisp.util
 
-import dev.wisplang.wisp.tokenizer.Tokenizer.MatureToken
-import dev.wisplang.wisp.tokenizer.Tokenizer.MatureType
 import dev.wisplang.wisp.lexer.Lexer
+import dev.wisplang.wisp.tokenizer.MatureToken
+import dev.wisplang.wisp.tokenizer.MatureType
 
 object TokenMatch {
-    fun Lexer.match( token: MatureToken = consume(), function: MatchBody.() -> Unit ) {
+    fun Lexer.match(token: MatureToken = consume(), function: MatchBody.() -> Unit ) {
         val body = MatchBody()
         function(body)
         for (case in body.cases)
