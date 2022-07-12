@@ -216,6 +216,7 @@ class Lexer {
         return null
     }
 
+    // TODO: Replace with readable code
     private fun parseExpression(): ArrayList<PrimitiveOperator> {
         val outputQueue = ArrayList<PrimitiveOperator>()
         val operatorStack = ArrayList<PrimitiveOperator>()
