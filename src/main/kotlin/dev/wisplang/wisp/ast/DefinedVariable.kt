@@ -1,9 +1,9 @@
 package dev.wisplang.wisp.ast
 
-import dev.wisplang.wisp.lexer.PrimitiveOperator
+import dev.wisplang.wisp.lexer.Expression
 
 data class DefinedVariable(
     val name: String,
     val type: BaseType,
-    val default: ArrayList<PrimitiveOperator>?
+    val default: Expression? = null
 )

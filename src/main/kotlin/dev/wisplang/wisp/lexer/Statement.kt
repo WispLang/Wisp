@@ -1,24 +1,53 @@
 package dev.wisplang.wisp.lexer
 
-enum class Statement(val sym: String, val precedence: Int, val rightAssociative: Boolean = false) {
-    And("&&", 0),
-    Add("+", 1),
-    Sub("-", 1),
-    Mul("*", 2),
-    Div("/", 2),
-    Or("||", 3),
-    Not("!", 4, true);
+import dev.wisplang.wisp.ast.DefinedFunction
+import dev.wisplang.wisp.ast.DefinedVariable
+import dev.wisplang.wisp.ast.PrimitiveTypes
 
-    companion object {
-        private val STRINGS: List<String> = Statement.values().map { it.sym }
+sealed class Statement
 
-        fun of(value: String): Statement {
-            for (op in Statement.values())
-                if (op.sym == value)
-                    return op
-            throw IllegalStateException("Invalid operator: '$value'!")
-        }
+class ExpressionStatement( val expr: Expression ) : Statement()
 
-        operator fun contains(value: String) = value in STRINGS
-    }
+class VarDefStatement( val variable: DefinedVariable ) : Statement()
+
+class ReturnStatement( val expr: Expression ) : Statement()
+
+class WhileStatement( val condition: Expression, val body: Block ) : Statement()
+
+class ForStatement(
+    val variable: DefinedVariable,
+    val condition: Expression,
+    val operation: Expression,
+    val body: Block
+) : Statement()
+
+data class IfStatement( val condition: Expression, val body: Block, val next: Statement? ) : Statement()
+data class ElseStatement( val body: Block ) : Statement()
+
+@Suppress("unused")
+private fun exampleAstUsage() {
+    DefinedFunction(
+        "testConditions",
+        PrimitiveTypes.U1,
+        listOf( DefinedVariable( "number", PrimitiveTypes.I32 ) ),
+        Block(
+            IfStatement(
+                BinaryExpression(
+                    NamedExpression("number"),
+                    Operator.EQ,
+                    LiteralExpression("0")
+                ),
+                Block( ReturnStatement( LiteralExpression("1") ) ),
+                IfStatement(
+                    BinaryExpression(
+                        NamedExpression("number"),
+                        Operator.EQ,
+                        LiteralExpression("1")
+                    ),
+                    Block( ReturnStatement( LiteralExpression("1") ) ),
+                    ElseStatement( Block( ReturnStatement( LiteralExpression("0") ) ) )
+                )
+            )
+        )
+    )
 }

@@ -8,5 +8,6 @@ enum class MatureType {
     STRING,
     NAME,
     NEWLINE,
-    PRIMITIVE
+    PRIMITIVE,
+    EOF
 }

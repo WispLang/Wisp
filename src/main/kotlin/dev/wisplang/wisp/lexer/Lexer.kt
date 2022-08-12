@@ -14,11 +14,14 @@ class Lexer {
     private var tokens: List<MatureToken> = listOf()
     private var i: Int = 0
 
+    private fun peekIs( vararg types: MatureType ) = peek(0).type in types
     private fun peek( offset: Int = 1 ) = tokens[i + offset]
+    private fun atEof() = tokens[i].type == MatureType.EOF
     internal fun consume() = tokens[++i]
 
     private fun peekIs( type: MatureType, value: String? = null, offset: Int = 0 ) =
         peek( offset ).type == type && ( value == null || peek( offset ).value == value )
+
 
     private fun consumeOrThrow( err: String, vararg types: MatureType ) =
         if ( peek(0).type in types ) consume() else throw LexerException(err)
@@ -38,6 +41,7 @@ class Lexer {
         return false
     }
 
+    @Suppress("unused")
     fun lex(tokens: List<MatureToken>): Root {
         val functions = HashMap<String, DefinedFunction>()
         val types = HashMap<String, DefinedType>()
@@ -52,11 +56,11 @@ class Lexer {
                     val func = parseFunction()
                     functions[func.name] = func
                 }
-                on(MatureType.KEYWORD, "type") {
+                on( MatureType.KEYWORD, "type" ) {
                     val type = parseType()
                     types[type.name] = type
                 }
-                on(MatureType.KEYWORD, "var") {
+                on( MatureType.KEYWORD, "var" ) {
                     val variabl = parseVariable()
                     globals[variabl.name] = variabl
                 }
@@ -64,7 +68,7 @@ class Lexer {
                     throw LexerException( "Expected `func`, `type` or `var` keywords, got $this" )
                 }
             }
-        } while (++i < tokens.size)
+        } while (! atEof() )
         return Root(types, globals, functions)
     }
 
@@ -102,18 +106,33 @@ class Lexer {
         // : i32
         val type = if ( consumeIfIs( MatureType.SYMBOL, ":" ) ) parseTypeReference( "function" ) else VoidType.Void
 
+        // <body>
+        val body = parseBlock()
+
+        return DefinedFunction( name, type, params, body )
+    }
+
+    /**
+     * Parsers a block declaration
+     * ```
+     * {
+     *     -> paramName.int + 12
+     * }
+     * ```
+     */
+    private fun parseBlock(): Block {
         consumeOrThrow( "Expected `{` symbol after `header` in function declaration!", "{", MatureType.SYMBOL )
 
         // -> paramName.int + 12
         val statements = ArrayList<Statement>()
         while ( ++i < tokens.size && !peekIs( MatureType.SYMBOL, "}" ) ) {
-            statements.add( parseStatement()!! )  // TODO: Remove after statements are impl
-            consumeOrThrow( "Expected `newline` after `statement` in function declaration!", MatureType.NEWLINE )
+            statements.add( parseStatement() )
+            consumeOrThrow( "Expected `newline` after `statement` in block!", MatureType.NEWLINE )
         }
 
-        consumeOrThrow( "Expected `}` symbol after `body` in function declaration!", "}", MatureType.SYMBOL )
+        consumeOrThrow( "Expected `}` symbol after `body` in block!", "}", MatureType.SYMBOL )
 
-        return DefinedFunction( name, type, params, Unit )
+        return Block( statements )
     }
 
     /**
@@ -134,14 +153,14 @@ class Lexer {
         return DefinedVariable(
             name,
             type,
-            if ( peekIs( MatureType.SYMBOL, "=", 0 ) )
+            if ( consumeIfIs( MatureType.SYMBOL, "=" ) )
                 parseExpression()
             else
                 null
         )
     }
 
-    private fun parseTypeReference( where: String ) =  BaseType.findType(
+    private fun parseTypeReference( where: String ) = BaseType.findType(
         consumeOrThrow(
             "Expected `name` or `primitive` after `:` symbol in $where declaration!",
             ":",
@@ -171,8 +190,9 @@ class Lexer {
             vars.add( parseVariable() )
             consumeOrThrow( "Expected `newline` after `var` declaration", MatureType.NEWLINE )
         }
+        // ]
+        consumeOrThrow( "Expected `]` symbol after `newline` in type declaration!", "]", MatureType.SYMBOL )
 
-        consumeOrThrow( "Expected `]` symbol after `newline` in type declaration!", "]", MatureType.SYMBOL ) // ]
         return DefinedType( name, vars )
     }
 
@@ -182,12 +202,12 @@ class Lexer {
      * -> paramName.int + 12
      * ```
      */
-    fun parseStatement(): Statement? {
+    private fun parseStatement(): Statement {
+        var statement: Statement
         // Check if token is a keyword, a name, or return, else throw error
         match {
             on( MatureType.KEYWORD, "var" ) {
-                val local = parseVariable()
-                // TODO: Finish local declaration
+                statement = VarDefStatement( parseVariable() )
             }
             on( MatureType.KEYWORD, "for" ) {
                 // TODO: Parse out for loop
@@ -202,32 +222,38 @@ class Lexer {
                 // TODO: Parse out function calls vs variable assigns
             }
             on( MatureType.SYMBOL, "->" ) {
-                // TODO: Parse out expression
+                statement = ReturnStatement( parseExpression() )
             }
             on( MatureType.SYMBOL ) {
-                // TODO: throw error
+                throw LexerException("Expected keyword, name, or a return; but got invalid symbol '$it'")
             }
             default {
                 throw LexerException("Expected keyword, name, or a return; but got '${consume()}'")
             }
         }
-
-        // TODO: return the operator
-        return null
+        return statement
     }
 
+    /**
+     * Parsers an expression
+     * ```
+     * paramName.int + 12
+     * ```
+     */
     // TODO: Replace with readable code
-    private fun parseExpression(): ArrayList<PrimitiveOperator> {
+    private fun parseExpression(): Expression {
         val outputQueue = ArrayList<PrimitiveOperator>()
         val operatorStack = ArrayList<PrimitiveOperator>()
-        while (i < tokens.size) {
-            val token = tokens[i]
-            when (token.type) {
-                MatureType.INTEGER, MatureType.FLOAT, MatureType.STRING -> outputQueue.add(PrimitiveOperator(token.value))
-                MatureType.NAME -> {
+        var flag = true
+        while ( !peekIs( MatureType.EOF, MatureType.NEWLINE ) && flag ) {
+            match {
+                on( MatureType.INTEGER, MatureType.FLOAT, MatureType.STRING ) {
+                    outputQueue.add( PrimitiveOperator(value) )
+                }
+                on( MatureType.NAME ) {
                     // TODO: parse out function calls vs variable calls
                 }
-                MatureType.SYMBOL -> {
+                oni( MatureType.SYMBOL ) {
                     /* while (
                      *      there is an operator o2 other than the left parenthesis at the top
                      *      of the operator stack, and (o2 has greater precedence than o1,
@@ -236,31 +262,29 @@ class Lexer {
                      *      pop o2 from the operator stack into the output queue
                      * push o1 onto the operator stack
                      */
-                    if (token.value in Statement) {
-                        for (j in (operatorStack.size - 1)..0) {
-                            if (operatorStack.isEmpty() || i < operatorStack.size)
+                    if ( value in Operator ) {
+                        for ( j in ( operatorStack.size - 1 )..0 ) {
+                            if ( operatorStack.isEmpty() || i < operatorStack.size )
                                 break
                             val op2 = operatorStack[j].value
-                            if (op2.sym == "(")
+                            if ( op2.sym == "(" )
                                 break
-                            val op1 = Statement.of(token.value)
-                            if (op2.precedence > op1.precedence || (op2.precedence > op1.precedence && op2.rightAssociative))
-                                outputQueue.add(operatorStack.removeLast())
+                            val op1 = Operator.of( value )
+                            if ( op2.precedence > op1.precedence || ( op2.precedence > op1.precedence && op2.rightAssociative ) )
+                                outputQueue.add( operatorStack.removeLast() )
                             else
                                 break
                         }
-                        operatorStack.add(PrimitiveOperator(token.value))
+                        operatorStack.add( PrimitiveOperator( value ) )
                     } else
-                        break
+                        flag = false
                 }
-                MatureType.NEWLINE -> break
-                else -> throw IllegalStateException("Invalid token received: $token")
+                default {
+                    throw IllegalStateException("Invalid token received: $this")
+                }
             }
-            i++
         }
-        if (operatorStack.isNotEmpty())
-            for (j in (operatorStack.size - 1)..0)
-                outputQueue.add(operatorStack.removeLast())
-        return outputQueue
+        outputQueue.addAll( operatorStack.reversed() )
+        return LiteralExpression("")
     }
 }

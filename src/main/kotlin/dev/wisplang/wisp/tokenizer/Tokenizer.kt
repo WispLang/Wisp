@@ -216,6 +216,8 @@ object Tokenizer {
             )
         } while (++i < tokens.size)
 
+        matureTokens.add( MatureToken( MatureType.EOF, "", tokens.size, 0 ) )
+
         return matureTokens
     }
 }
