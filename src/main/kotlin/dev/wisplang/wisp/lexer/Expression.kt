@@ -11,7 +11,7 @@ class BinaryExpression( val left: Expression, val op: Operator, val right: Expre
 
 class GroupedExpression( val right: Expression ) : Expression()
 
-class CallExpression( val name: Identifier, val params: ArrayList<String> ) : Expression()
-class ConstructExpression( val name: Identifier, val params: ArrayList<String> ) : Expression()
+class CallExpression( val name: Identifier, val params: ArrayList<Expression> ) : Expression()
+class ConstructExpression( val name: Identifier, val params: ArrayList<Expression> ) : Expression()
 
 class NamedExpression( val name: Identifier ) : Expression()

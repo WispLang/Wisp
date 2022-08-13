@@ -3,10 +3,8 @@ package dev.wisplang.wisp.lexer
 import dev.wisplang.wisp.LexerException
 import dev.wisplang.wisp.ast.*
 import dev.wisplang.wisp.tokenizer.MatureToken
-import dev.wisplang.wisp.util.TokenMatch.match
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 import dev.wisplang.wisp.tokenizer.MatureType
+import dev.wisplang.wisp.util.TokenMatch.match
 
 
 @Suppress("SameParameterValue")
@@ -429,14 +427,57 @@ class Lexer {
         if ( peekIs( MatureType.SYMBOL, "!", "-" ) )
             UnaryExpression( Operator.of( consume().value ), unary() )
         else if ( peekIs( MatureType.SYMBOL, "--", "++" ) )
-            UnaryExpression( Operator.of( consume().value ), primary() )
+            UnaryExpression( Operator.of( consume().value ), call() )
         else {
-            val expr = primary()
+            val expr = call()
             if ( peekIs( MatureType.SYMBOL, "--", "++" ) )
                 InverseUnaryExpression( expr, Operator.of( consume().value ) )
             else
                 expr
         }
+
+    private fun call(): Expression {
+        var expression = primary()
+
+        while (true) {
+            expression = if ( peekIs(MatureType.SYMBOL, "(") )
+                finishCall( ( expression as NamedExpression ).name )
+            else if ( peekIs( MatureType.SYMBOL, "[" ) )
+                finishConstruct( ( expression as NamedExpression ).name )
+            else if ( peekIs( MatureType.SYMBOL, "." ) ) {
+                i--
+                NamedExpression( parseIdentifier() )
+            } else break
+        }
+
+        return expression
+    }
+
+    private fun finishCall( name: Identifier ): Expression {
+        val arguments = ArrayList<Expression>()
+
+        if ( consumeIfIs( MatureType.SYMBOL, "(" ) ) {
+            do {
+                arguments.add( parseExpression() )
+            } while ( consumeIfIs(MatureType.SYMBOL, ",") )
+        }
+
+        consumeOrThrow( "Expect ')' after arguments.", MatureType.SYMBOL, ")" )
+        return CallExpression( name, arguments )
+    }
+
+    private fun finishConstruct( name: Identifier ): Expression {
+        val arguments = ArrayList<Expression>()
+
+        if ( consumeIfIs( MatureType.SYMBOL, "[" ) ) {
+            do {
+                arguments.add( parseExpression() )
+            } while (! peekIs( MatureType.SYMBOL, "]" ) )
+        }
+
+        consumeOrThrow( "Expect ']' after arguments.", MatureType.SYMBOL, "]" )
+        return ConstructExpression( name, arguments )
+    }
 
     private fun primary(): Expression {
         var expression: Expression = LiteralExpression( "" )
@@ -453,31 +494,7 @@ class Lexer {
             on( MatureType.NAME ) {
                 i-- // needed as match always consumes a token
                 val id = parseIdentifier()
-
-                expression = if ( consumeIfIs( MatureType.SYMBOL, "(" ) ) {
-                    val params = ArrayList<String>()
-                    while ( i + 1 < tokens.size && peekIs( MatureType.NAME ) ) {
-                        params.add(consume().value)
-                        consumeOrThrow(
-                            "Expected `,` or `)` symbols after `name` in call expression",
-                            MatureType.SYMBOL,
-                            ",",
-                            ")"
-                        )
-                    }
-                    CallExpression( id, params )
-                } else if ( consumeIfIs( MatureType.SYMBOL, "[" ) ) {
-                    val params = ArrayList<String>()
-                    while ( i + 1 < tokens.size && peekIs( MatureType.NAME ) ) {
-                        params.add( consume().value )
-                        if ( consumeIfIs( MatureType.SYMBOL, "]" ) )
-                            break
-                        if (! peekIs(MatureType.NAME) )
-                            throw LexerException( "Expected `]` symbol or `name` after `name` in construct expression" )
-                    }
-                    ConstructExpression( id, params )
-                } else
-                    NamedExpression( id )
+                expression = NamedExpression( id )
             }
             default {
                 throw LexerException( "Expected expression.." )
