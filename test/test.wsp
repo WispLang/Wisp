@@ -23,6 +23,13 @@ func testLoops(): u1 {
     for var i: i32 = 1, i < max, i++ {
         num = TestType[i num].add()
     }
+    while cond {
+      //code
+    }
+    //or
+    do {
+      //code
+    } while cond
     -> testConditions(num)
 }
 //test regular comment

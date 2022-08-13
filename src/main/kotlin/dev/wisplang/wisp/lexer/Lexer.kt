@@ -235,30 +235,33 @@ class Lexer {
      * ```
      */
     private fun parseStatement(): Statement {
-        var statement: Statement = ExpressionStatement( LiteralExpression("") ) // TODO: Remove default
+        var statement: Statement = ExpressionStatement( LiteralExpression("") )
         consumeIfIs(MatureType.NEWLINE)
         // Check if token is a keyword, a name, or return, else throw error
         match {
             on( MatureType.KEYWORD, "var" ) {
                 statement = VarDefStatement( parseVariable() )
             }
-            on( MatureType.KEYWORD, "for" ) {
-                // TODO: Parse out for loop
-            }
-            on( MatureType.KEYWORD, "while" ) {
-                // TODO: Parse out while loop
-            }
             on( MatureType.KEYWORD, "if" ) {
                 statement = parseIfChain()
-            }
-            on( MatureType.KEYWORD, "imp" ) {
-                // TODO: Parse out imp
             }
             on( MatureType.NAME ) {
                 statement = parseAssign()
             }
             on( MatureType.SYMBOL, "->" ) {
                 statement = ReturnStatement( parseExpression() )
+            }
+            on( MatureType.KEYWORD, "for" ) {
+                statement = parseForLoop()
+            }
+            on( MatureType.KEYWORD, "while" ) {
+                // TODO: Parse out while loop
+            }
+            on( MatureType.KEYWORD, "do" ) {
+                // TODO: Parse out do-while loop
+            }
+            on( MatureType.KEYWORD, "imp" ) {
+                // TODO: Parse out imp
             }
             default {
                 throw LexerException("Expected keyword, name, or a return; but got '$this'")
@@ -267,7 +270,30 @@ class Lexer {
         return statement
     }
 
+    /**
+     * Parsers an if/else chain
+     * ```
+     * for var i: i32 = 1, i < max, i++ {
+     *    num = TestType[i num].add()
+     * }
+     * ```
+     */
+    private fun parseForLoop(): Statement {
+        val variable = parseVariable()
+        consumeOrThrow("Expected `,` symbol after `vardef` in for loop!", ",", MatureType.SYMBOL)
+        val condition = parseExpression()
+        consumeOrThrow("Expected `,` symbol after `condition` in for loop!", ",", MatureType.SYMBOL)
+        val operation = parseExpression()
+        consumeOrThrow("Expected `{` symbol after `updater` in for loop!", "{", MatureType.SYMBOL)
+        val block = parseBlock()
 
+        return ForStatement(
+            variable,
+            condition,
+            operation,
+            block
+        )
+    }
 
     /**
      * Parsers an if/else chain
