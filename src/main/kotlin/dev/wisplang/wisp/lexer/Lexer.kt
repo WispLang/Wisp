@@ -14,26 +14,29 @@ class Lexer {
     private var tokens: List<MatureToken> = listOf()
     private var i: Int = 0
 
-    private fun peekIs( vararg types: MatureType ) = peek(0).type in types
+    // region util
     private fun peek( offset: Int = 1 ) = tokens[i + offset]
     private fun atEof() = tokens[i].type == MatureType.EOF
-    internal fun consume() = tokens[++i]
+    internal fun consume() = tokens[i++]
 
-    private fun peekIs( type: MatureType, value: String? = null, offset: Int = 0 ) =
-        peek( offset ).type == type && ( value == null || peek( offset ).value == value )
+    private fun peekIs( type: MatureType, vararg values: String ) =
+        peek( 0 ).type == type && ( values.isEmpty() || peek( 0 ).value in values )
 
-
-    private fun consumeOrThrow( err: String, vararg types: MatureType ) =
-        if ( peek(0).type in types ) consume() else throw LexerException(err)
-
-    private fun consumeOrThrow( err: String, value: String, vararg types: MatureType ): MatureToken {
-        if ( peek(0).type in types && peek(0).value == value )
+    private fun consumeOrThrow( err: String, value: String? = null, vararg types: MatureType ): MatureToken {
+        if ( peek(0).type in types && ( value == null || peek(0).value == value ) )
             return consume()
         else
             throw LexerException(err)
     }
 
-    private fun consumeIfIs( type: MatureType, value: String? = null ): Boolean {
+    private fun consumeOrThrow( err: String, types: MatureType, vararg values: String ): MatureToken {
+        if ( peek(0).type == types && ( values.isEmpty() || peek(0).value in values ) )
+            return consume()
+        else
+            throw LexerException(err)
+    }
+
+    private fun consumeIfIs( type: MatureType, value: String ): Boolean {
         if ( peekIs( type, value ) ) {
             consume()
             return true
@@ -41,7 +44,16 @@ class Lexer {
         return false
     }
 
-    @Suppress("unused")
+    private fun consumeIfIs( type: MatureType ): Boolean {
+        if ( peekIs( type ) ) {
+            consume()
+            return true
+        }
+        return false
+    }
+    // endregion util
+
+    @Suppress("unused", "ControlFlowWithEmptyBody")
     fun lex(tokens: List<MatureToken>): Root {
         val functions = HashMap<String, DefinedFunction>()
         val types = HashMap<String, DefinedType>()
@@ -51,6 +63,9 @@ class Lexer {
         this.i = 0
 
         do {
+            // remove all newlines
+            while( consumeIfIs( MatureType.NEWLINE ) ) { }
+
             match {
                 on( MatureType.KEYWORD, "func" ) {
                     val func = parseFunction()
@@ -91,7 +106,7 @@ class Lexer {
 
         // paramName: ParamType
         val params = mutableListOf<DefinedVariable>()
-        while ( ++i < tokens.size && peekIs( MatureType.NAME ) ) {
+        while ( i + 1 < tokens.size && peekIs( MatureType.NAME ) ) {
             params.add( parseVariable() )
 
             if ( peekIs( MatureType.NAME ) )
@@ -121,11 +136,11 @@ class Lexer {
      * ```
      */
     private fun parseBlock(): Block {
-        consumeOrThrow( "Expected `{` symbol after `header` in function declaration!", "{", MatureType.SYMBOL )
+        consumeOrThrow( "Expected `{` symbol to start a block!", "{", MatureType.SYMBOL )
 
         // -> paramName.int + 12
         val statements = ArrayList<Statement>()
-        while ( ++i < tokens.size && !peekIs( MatureType.SYMBOL, "}" ) ) {
+        while ( i + 1 < tokens.size && !peekIs( MatureType.SYMBOL, "}" ) ) {
             statements.add( parseStatement() )
             consumeOrThrow( "Expected `newline` after `statement` in block!", MatureType.NEWLINE )
         }
@@ -163,11 +178,26 @@ class Lexer {
     private fun parseTypeReference( where: String ) = BaseType.findType(
         consumeOrThrow(
             "Expected `name` or `primitive` after `:` symbol in $where declaration!",
-            ":",
+            null,
             MatureType.PRIMITIVE,
             MatureType.NAME
         ).value
     )
+
+    /**
+     * Parsers an identifier/name
+     * ```
+     * name.a.f
+     * ```
+     */
+    private fun parseIdentifier(): Identifier =
+        Identifier(
+            consume().value,
+            if ( consumeIfIs( MatureType.SYMBOL, "." ) )
+                parseIdentifier()
+            else
+                null
+        )
 
     /**
      * Parsers a type structure
@@ -184,9 +214,11 @@ class Lexer {
         val name = consumeOrThrow("Expected `name` after `type` keyword!", MatureType.NAME).value
         // [
         consumeOrThrow( "Expected `[` symbol after `name` in type declaration!", "[", MatureType.SYMBOL )
+        // \n
+        consumeIfIs( MatureType.NEWLINE )
         // variables
         val vars = ArrayList<DefinedVariable>()
-        while ( ++i < tokens.size && peekIs( MatureType.NAME ) ) {
+        while ( i + 1 < tokens.size && peekIs( MatureType.NAME ) ) {
             vars.add( parseVariable() )
             consumeOrThrow( "Expected `newline` after `var` declaration", MatureType.NEWLINE )
         }
@@ -203,7 +235,8 @@ class Lexer {
      * ```
      */
     private fun parseStatement(): Statement {
-        var statement: Statement
+        var statement: Statement = ExpressionStatement( LiteralExpression("") ) // TODO: Remove default
+        consumeIfIs(MatureType.NEWLINE)
         // Check if token is a keyword, a name, or return, else throw error
         match {
             on( MatureType.KEYWORD, "var" ) {
@@ -216,22 +249,61 @@ class Lexer {
                 // TODO: Parse out while loop
             }
             on( MatureType.KEYWORD, "if" ) {
-                // TODO: Parse out if, if/else, if/elseif, etc
+                statement = parseIfChain()
+            }
+            on( MatureType.KEYWORD, "imp" ) {
+                // TODO: Parse out imp
             }
             on( MatureType.NAME ) {
-                // TODO: Parse out function calls vs variable assigns
+                statement = parseAssign()
             }
             on( MatureType.SYMBOL, "->" ) {
                 statement = ReturnStatement( parseExpression() )
             }
-            on( MatureType.SYMBOL ) {
-                throw LexerException("Expected keyword, name, or a return; but got invalid symbol '$it'")
-            }
             default {
-                throw LexerException("Expected keyword, name, or a return; but got '${consume()}'")
+                throw LexerException("Expected keyword, name, or a return; but got '$this'")
             }
         }
         return statement
+    }
+
+
+
+    /**
+     * Parsers an if/else chain
+     * ```
+     * if number == 0 {
+     *   -> 1
+     * } [else statement|block]
+     * ```
+     */
+    private fun parseIfChain(): Statement {
+        val cond = parseExpression()
+        val block = parseBlock()
+
+        return IfStatement(
+            cond,
+            block,
+            if ( consumeIfIs( MatureType.KEYWORD, "else" ) )
+                if ( peekIs(MatureType.SYMBOL, "{") )
+                    ElseStatement( parseBlock() )  // if else-block
+                else
+                    parseStatement() // if else-statement
+            else
+                null  // if
+        )
+    }
+
+    /**
+     * Parsers an assignment
+     * ```
+     * paramName.int = 12
+     * ```
+     */
+    private fun parseAssign(): Statement {
+        val id = parseIdentifier()
+        consumeOrThrow("Expected `=` symbol after `name` in assign statement!", "=", MatureType.SYMBOL )
+        return AssignStatement( id, parseExpression() )
     }
 
     /**
@@ -240,51 +312,83 @@ class Lexer {
      * paramName.int + 12
      * ```
      */
-    // TODO: Replace with readable code
-    private fun parseExpression(): Expression {
-        val outputQueue = ArrayList<PrimitiveOperator>()
-        val operatorStack = ArrayList<PrimitiveOperator>()
-        var flag = true
-        while ( !peekIs( MatureType.EOF, MatureType.NEWLINE ) && flag ) {
-            match {
-                on( MatureType.INTEGER, MatureType.FLOAT, MatureType.STRING ) {
-                    outputQueue.add( PrimitiveOperator(value) )
-                }
-                on( MatureType.NAME ) {
-                    // TODO: parse out function calls vs variable calls
-                }
-                oni( MatureType.SYMBOL ) {
-                    /* while (
-                     *      there is an operator o2 other than the left parenthesis at the top
-                     *      of the operator stack, and (o2 has greater precedence than o1,
-                     *      or they have the same precedence and o1 is left-associative)
-                     * ):
-                     *      pop o2 from the operator stack into the output queue
-                     * push o1 onto the operator stack
-                     */
-                    if ( value in Operator ) {
-                        for ( j in ( operatorStack.size - 1 )..0 ) {
-                            if ( operatorStack.isEmpty() || i < operatorStack.size )
-                                break
-                            val op2 = operatorStack[j].value
-                            if ( op2.sym == "(" )
-                                break
-                            val op1 = Operator.of( value )
-                            if ( op2.precedence > op1.precedence || ( op2.precedence > op1.precedence && op2.rightAssociative ) )
-                                outputQueue.add( operatorStack.removeLast() )
-                            else
-                                break
-                        }
-                        operatorStack.add( PrimitiveOperator( value ) )
-                    } else
-                        flag = false
-                }
-                default {
-                    throw IllegalStateException("Invalid token received: $this")
-                }
+    private fun parseExpression() = equality()
+
+    // region expressions
+    private fun equality(): Expression {
+        var expr = comparison()
+
+        while ( peekIs( MatureType.SYMBOL, "==", "!=" ) )
+            expr = BinaryExpression( expr, Operator.of( consume().value ), comparison() )
+
+        return expr
+    }
+
+    private fun comparison(): Expression {
+        var expr = term()
+
+        while ( peekIs( MatureType.SYMBOL, ">", ">=", "<", "<=", "&&", "||" ) )
+            expr = BinaryExpression( expr, Operator.of( consume().value ), term() )
+
+        return expr
+    }
+
+    private fun term(): Expression {
+        var expr = factor()
+
+        while ( peekIs( MatureType.SYMBOL, "-", "+" ) )
+            expr = BinaryExpression( expr, Operator.of( consume().value ), factor() )
+
+        return expr
+    }
+
+    private fun factor(): Expression {
+        var expr = unary()
+
+        while ( peekIs( MatureType.SYMBOL, "/", "*", "%" ) )
+            expr = BinaryExpression( expr, Operator.of( consume().value ), unary() )
+
+        return expr
+    }
+
+    private fun unary(): Expression =
+        if ( peekIs( MatureType.SYMBOL, "!", "-" ) )
+            UnaryExpression( Operator.of( consume().value ), unary() )
+        else
+            primary()
+
+    private fun primary(): Expression {
+        var expression: Expression = LiteralExpression( "" )
+
+        match {
+            on( MatureType.INTEGER, MatureType.FLOAT, MatureType.STRING ) {
+                expression = LiteralExpression( value )
+            }
+            on( MatureType.SYMBOL, "(" ) {
+                val expr = equality()
+                consumeOrThrow( "Expected `)` symbol after `expr` in grouped expression!", ")", MatureType.SYMBOL )
+                expression = GroupedExpression( expr )
+            }
+            on( MatureType.NAME ) {
+                i-- // needed as match always consumes a token
+                val id = parseIdentifier()
+
+                expression = if ( consumeIfIs( MatureType.SYMBOL, "(" ) ) {
+                    val params = ArrayList<String>()
+                    while ( i + 1 < tokens.size && peekIs( MatureType.NAME ) ) {
+                        params.add( consume().value )
+                        consumeOrThrow( "Expected `,` or `)` symbols after `name` in call expression", MatureType.SYMBOL, ",", ")" )
+                    }
+                    CallExpression( id, params )
+                } else
+                    NamedExpression( id )
+            }
+            default {
+                throw LexerException( "Expected expression.." )
             }
         }
-        outputQueue.addAll( operatorStack.reversed() )
-        return LiteralExpression("")
+
+        return expression
     }
+    // endregion expressions
 }

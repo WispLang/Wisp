@@ -1,5 +1,6 @@
 package dev.wisplang.wisp
 
+import dev.wisplang.wisp.tokenizer.Keywords
 import dev.wisplang.wisp.tokenizer.Tokenizer
 
 enum class Primitive( type: BaseType, size: Short ) {
@@ -18,7 +19,7 @@ enum class Primitive( type: BaseType, size: Short ) {
     override fun toString() = this.name.lowercase()
 
     companion object {
-        private val STRINGS: List<String> = Tokenizer.Keywords.values().map { it.toString() }
+        private val STRINGS: List<String> = Keywords.values().map { it.toString() }
 
         fun strings() = STRINGS
     }

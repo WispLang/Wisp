@@ -11,38 +11,60 @@ object Tokenizer {
         val tokenArray = arrayListOf<Token>()
 
         var i = 0
+        var line = 1
+        var col = 0
+
         while (i < value.length) {
             val character = value[i]
             val startPos = i
             when {
                 character == '/' && value[i + 1] == '/' -> {
                     i = value.indexOf("\n", i)
-                    tokenArray.add(Token(Type.NEWLINE, "\n", i, 1))
+                    tokenArray.add(Token(Type.NEWLINE, "\n", i, 1, line, col))
+                    line += 1
+                    col = 0
                 }
+
                 character == '/' && value[i + 1] == '*' -> {
                     i = value.indexOf("*/", i) + 1
                     if (value.substring(startPos, i).contains("\n"))
-                        tokenArray.add(Token(Type.NEWLINE, "\n", i, 1))
+                        tokenArray.add(Token(Type.NEWLINE, "\n", i, 1, line, col))
+                    col += 1
                 }
+
                 letterRegex.matches(character.toString()) -> {
                     val nameString = buildNameString(value, i)
                     i += nameString.length - 1
-                    tokenArray.add(Token(Type.NAME, nameString, startPos, nameString.length))
+                    tokenArray.add(Token(Type.NAME, nameString, startPos, nameString.length, line, col))
+                    col += nameString.length
                 }
+
                 character == '"' -> {
                     value.dropLast(value.length)
                     val string = buildQuotedString(value, ++i)
                     val len = string.replace("\"", "\\\"").replace("\n", "\\n").length
                     i += len
-                    tokenArray.add(Token(Type.STRING, string, startPos, len))
+                    tokenArray.add(Token(Type.STRING, string, startPos, len, line, col))
+                    col += len
                 }
+
                 character.isDigit() -> {
                     val integerString = buildNumString(value, i)
                     i += integerString.length - 1
-                    tokenArray.add(Token(Type.NUMBER, integerString, startPos, integerString.length))
+                    tokenArray.add(Token(Type.NUMBER, integerString, startPos, integerString.length, line, col))
+                    col += integerString.length
                 }
-                symbolRegex.matches(character.toString()) -> tokenArray.add(Token(Type.SYMBOL, character.toString(), startPos, 1))
-                character.toString() == "\n" -> tokenArray.add(Token(Type.NEWLINE, "\n", i, 1))
+
+                symbolRegex.matches(character.toString()) -> {
+                    tokenArray.add( Token( Type.SYMBOL, character.toString(), startPos,  1,  line, col ) )
+                    col += 1
+                }
+
+                character.toString() == "\n" -> {
+                    tokenArray.add(Token(Type.NEWLINE, "\n", i, 1, line, col))
+                    line += 1
+                    col = 0
+                }
             }
             i++
         }
@@ -86,6 +108,7 @@ object Tokenizer {
                         }
                     }
                 }
+
                 else -> string += char
             }
             i++
@@ -112,111 +135,123 @@ object Tokenizer {
         var i = 0
         do {
             val token = tokens[i]
-            matureTokens.add(when (token.type) {
-                Type.SYMBOL -> {
-                    when (token.value) {
-                        "-" -> {
-                            when (tokens[++i].value) {
-                                ">" -> MatureToken(MatureType.SYMBOL, "->", token.idx, 2)
-                                "=" -> MatureToken(MatureType.SYMBOL, "-=", token.idx, 2)
-                                else -> {
-                                    i--
-                                    MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+            matureTokens.add(
+                when (token.type) {
+                    Type.SYMBOL -> {
+                        when (token.value) {
+                            "-" -> {
+                                when (tokens[++i].value) {
+                                    ">" -> MatureToken(MatureType.SYMBOL, "->", token.idx, 2, token.line, token.col)
+                                    "=" -> MatureToken(MatureType.SYMBOL, "-=", token.idx, 2, token.line, token.col)
+                                    else -> {
+                                        i--
+                                        MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len, token.line, token.col)
+                                    }
                                 }
                             }
-                        }
-                        "+" -> {
-                            when (tokens[++i].value) {
-                                "+" -> MatureToken(MatureType.SYMBOL, "++", token.idx, 2)
-                                "=" -> MatureToken(MatureType.SYMBOL, "+=", token.idx, 2)
-                                else -> {
-                                    i--
-                                    MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+
+                            "+" -> {
+                                when (tokens[++i].value) {
+                                    "+" -> MatureToken(MatureType.SYMBOL, "++", token.idx, 2, token.line, token.col)
+                                    "=" -> MatureToken(MatureType.SYMBOL, "+=", token.idx, 2, token.line, token.col)
+                                    else -> {
+                                        i--
+                                        MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len, token.line, token.col)
+                                    }
                                 }
                             }
-                        }
-                        "=" -> {
-                            when (tokens[++i].value) {
-                                "=" -> MatureToken(MatureType.SYMBOL, "==", token.idx, 2)
-                                else -> {
-                                    i--
-                                    MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+
+                            "=" -> {
+                                when (tokens[++i].value) {
+                                    "=" -> MatureToken(MatureType.SYMBOL, "==", token.idx, 2, token.line, token.col)
+                                    else -> {
+                                        i--
+                                        MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len, token.line, token.col)
+                                    }
                                 }
                             }
-                        }
-                        "<" -> {
-                            when (tokens[++i].value) {
-                                "<" -> MatureToken(MatureType.SYMBOL, "<<", token.idx, 2)
-                                "=" -> MatureToken(MatureType.SYMBOL, "<=", token.idx, 2)
-                                else -> {
-                                    i--
-                                    MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+
+                            "<" -> {
+                                when (tokens[++i].value) {
+                                    "<" -> MatureToken(MatureType.SYMBOL, "<<", token.idx, 2, token.line, token.col)
+                                    "=" -> MatureToken(MatureType.SYMBOL, "<=", token.idx, 2, token.line, token.col)
+                                    else -> {
+                                        i--
+                                        MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len, token.line, token.col)
+                                    }
                                 }
                             }
-                        }
-                        ">" -> {
-                            when (tokens[++i].value) {
-                                ">" -> MatureToken(MatureType.SYMBOL, ">>", token.idx, 2)
-                                "=" -> MatureToken(MatureType.SYMBOL, ">=", token.idx, 2)
-                                else -> {
-                                    i--
-                                    MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+
+                            ">" -> {
+                                when (tokens[++i].value) {
+                                    ">" -> MatureToken(MatureType.SYMBOL, ">>", token.idx, 2, token.line, token.col)
+                                    "=" -> MatureToken(MatureType.SYMBOL, ">=", token.idx, 2, token.line, token.col)
+                                    else -> {
+                                        i--
+                                        MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len, token.line, token.col)
+                                    }
                                 }
                             }
-                        }
-                        "!" -> {
-                            when (tokens[++i].value) {
-                                "=" -> MatureToken(MatureType.SYMBOL, "!=", token.idx, 2)
-                                else -> {
-                                    i--
-                                    MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+
+                            "!" -> {
+                                when (tokens[++i].value) {
+                                    "=" -> MatureToken(MatureType.SYMBOL, "!=", token.idx, 2, token.line, token.col)
+                                    else -> {
+                                        i--
+                                        MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len, token.line, token.col)
+                                    }
                                 }
                             }
-                        }
-                        "&" -> {
-                            when (tokens[++i].value) {
-                                "&" -> MatureToken(MatureType.SYMBOL, "&&", token.idx, 2)
-                                else -> {
-                                    i--
-                                    MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+
+                            "&" -> {
+                                when (tokens[++i].value) {
+                                    "&" -> MatureToken(MatureType.SYMBOL, "&&", token.idx, 2, token.line, token.col)
+                                    else -> {
+                                        i--
+                                        MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len, token.line, token.col)
+                                    }
                                 }
                             }
-                        }
-                        "|" -> {
-                            when (tokens[++i].value) {
-                                "|" -> MatureToken(MatureType.SYMBOL, "||", token.idx, 2)
-                                else -> {
-                                    i--
-                                    MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
+
+                            "|" -> {
+                                when (tokens[++i].value) {
+                                    "|" -> MatureToken(MatureType.SYMBOL, "||", token.idx, 2, token.line, token.col)
+                                    else -> {
+                                        i--
+                                        MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len, token.line, token.col)
+                                    }
                                 }
                             }
+
+                            else -> MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len, token.line, token.col)
                         }
-                        else -> MatureToken(MatureType.SYMBOL, token.value, token.idx, token.len)
                     }
+
+                    Type.STRING -> MatureToken(MatureType.STRING, token.value, token.idx, token.len, token.line, token.col)
+                    Type.NUMBER -> MatureToken(
+                        if (token.value.contains(".")) MatureType.FLOAT else MatureType.INTEGER,
+                        token.value,
+                        token.idx,
+                        token.len, token.line, token.col
+                    )
+
+                    Type.NAME -> MatureToken(
+                        when (token.value) {
+                            in Keywords.strings() -> MatureType.KEYWORD
+                            in Primitive.strings() -> MatureType.PRIMITIVE
+                            else -> MatureType.NAME
+                        },
+                        token.value,
+                        token.idx,
+                        token.len, token.line, token.col
+                    )
+
+                    Type.NEWLINE -> MatureToken(MatureType.NEWLINE, token.value, token.idx, 1, token.line, token.col)
                 }
-                Type.STRING -> MatureToken(MatureType.STRING, token.value, token.idx, token.len)
-                Type.NUMBER -> MatureToken(
-                    if (token.value.contains(".")) MatureType.FLOAT else MatureType.INTEGER,
-                    token.value,
-                    token.idx,
-                    token.len
-                )
-                Type.NAME -> MatureToken(
-                    when (token.value) {
-                        in Keywords.strings() -> MatureType.KEYWORD
-                        in Primitive.strings() -> MatureType.PRIMITIVE
-                        else -> MatureType.NAME
-                    },
-                    token.value,
-                    token.idx,
-                    token.len
-                )
-                Type.NEWLINE -> MatureToken(MatureType.NEWLINE, token.value, token.idx, 1)
-            }
             )
         } while (++i < tokens.size)
 
-        matureTokens.add( MatureToken( MatureType.EOF, "", tokens.size, 0 ) )
+        matureTokens.add(MatureToken(MatureType.EOF, "", tokens.size, 0, tokens.last().line + 1, 0))
 
         return matureTokens
     }
