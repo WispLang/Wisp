@@ -18,7 +18,9 @@ enum class Operator(val sym: String) {
     GE(">="),
     LOW("<"),
     LE("<="),
-    NEQ("!=");
+    NEQ("!="),
+    AAD("++"),
+    SSU("--");
 
     companion object {
         private val STRINGS: List<String> = Operator.values().map { it.sym }

@@ -175,6 +175,7 @@ class Lexer {
      * NOTE: `var` has already been removed before this is called!
      */
     private fun parseVariable(): DefinedVariable {
+        consumeIfIs(MatureType.KEYWORD, "var")
         // bar
         val name = consumeOrThrow( "Expected `name` for variable declaration!", MatureType.NAME ).value
         // :
@@ -331,7 +332,6 @@ class Lexer {
         val condition = parseExpression()
         consumeOrThrow("Expected `,` symbol after `condition` in for loop!", ",", MatureType.SYMBOL)
         val operation = parseExpression()
-        consumeOrThrow("Expected `{` symbol after `updater` in for loop!", "{", MatureType.SYMBOL)
         val block = parseBlock()
 
         return ForStatement(
@@ -374,6 +374,7 @@ class Lexer {
      * ```
      */
     private fun parseAssign(): Statement {
+        i--
         val id = parseIdentifier()
         consumeOrThrow("Expected `=` symbol after `name` in assign statement!", "=", MatureType.SYMBOL )
         return AssignStatement( id, parseExpression() )
@@ -427,8 +428,15 @@ class Lexer {
     private fun unary(): Expression =
         if ( peekIs( MatureType.SYMBOL, "!", "-" ) )
             UnaryExpression( Operator.of( consume().value ), unary() )
-        else
-            primary()
+        else if ( peekIs( MatureType.SYMBOL, "--", "++" ) )
+            UnaryExpression( Operator.of( consume().value ), primary() )
+        else {
+            val expr = primary()
+            if ( peekIs( MatureType.SYMBOL, "--", "++" ) )
+                InverseUnaryExpression( expr, Operator.of( consume().value ) )
+            else
+                expr
+        }
 
     private fun primary(): Expression {
         var expression: Expression = LiteralExpression( "" )
@@ -449,10 +457,25 @@ class Lexer {
                 expression = if ( consumeIfIs( MatureType.SYMBOL, "(" ) ) {
                     val params = ArrayList<String>()
                     while ( i + 1 < tokens.size && peekIs( MatureType.NAME ) ) {
-                        params.add( consume().value )
-                        consumeOrThrow( "Expected `,` or `)` symbols after `name` in call expression", MatureType.SYMBOL, ",", ")" )
+                        params.add(consume().value)
+                        consumeOrThrow(
+                            "Expected `,` or `)` symbols after `name` in call expression",
+                            MatureType.SYMBOL,
+                            ",",
+                            ")"
+                        )
                     }
                     CallExpression( id, params )
+                } else if ( consumeIfIs( MatureType.SYMBOL, "[" ) ) {
+                    val params = ArrayList<String>()
+                    while ( i + 1 < tokens.size && peekIs( MatureType.NAME ) ) {
+                        params.add( consume().value )
+                        if ( consumeIfIs( MatureType.SYMBOL, "]" ) )
+                            break
+                        if (! peekIs(MatureType.NAME) )
+                            throw LexerException( "Expected `]` symbol or `name` after `name` in construct expression" )
+                    }
+                    ConstructExpression( id, params )
                 } else
                     NamedExpression( id )
             }
