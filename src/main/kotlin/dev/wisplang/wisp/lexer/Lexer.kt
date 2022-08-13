@@ -96,7 +96,7 @@ class Lexer {
     }
 
     /**
-     * Parsers an if/else chain
+     * Parsers an import statement
      * ```
      * imp "path/to/file.wsp"
      * ```
@@ -272,16 +272,49 @@ class Lexer {
                 statement = parseForLoop()
             }
             on( MatureType.KEYWORD, "while" ) {
-                // TODO: Parse out while loop
+                statement = parseWhileLoop()
             }
             on( MatureType.KEYWORD, "do" ) {
-                // TODO: Parse out do-while loop
+                statement = parseDoWhileLoop()
             }
             default {
                 throw LexerException("Expected keyword, name, or a return; but got '$this'")
             }
         }
         return statement
+    }
+
+    /**
+     * Parsers a while loop
+     * ```
+     * while cond {
+     *   // code
+     * }
+     * ```
+     */
+    private fun parseWhileLoop(): Statement {
+        // cond
+        val condition = parseExpression()
+        val block = parseBlock()
+
+        return WhileStatement( condition, block )
+    }
+
+    /**
+     * Parsers a do-while loop
+     * ```
+     * do {
+     *   // code
+     * } while cond
+     * ```
+     */
+    private fun parseDoWhileLoop(): Statement {
+        // cond
+        val block = parseBlock()
+        consumeOrThrow("Expected `while` keyword after `}` in do-while loop!", "while", MatureType.KEYWORD )
+        val condition = parseExpression()
+
+        return DoWhileStatement( condition, block )
     }
 
     /**

@@ -13,6 +13,7 @@ class VarDefStatement(val variable: DefinedVariable) : Statement()
 class ReturnStatement(val expr: Expression) : Statement()
 
 class WhileStatement(val condition: Expression, val body: Block) : Statement()
+class DoWhileStatement(val condition: Expression, val body: Block) : Statement()
 
 class AssignStatement(val id: Identifier, val parseExpression: Expression) : Statement()
 
