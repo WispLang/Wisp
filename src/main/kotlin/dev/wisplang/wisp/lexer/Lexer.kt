@@ -56,8 +56,9 @@ class Lexer {
     @Suppress("unused", "ControlFlowWithEmptyBody")
     fun lex(tokens: List<MatureToken>): Root {
         val functions = HashMap<String, DefinedFunction>()
-        val types = HashMap<String, DefinedType>()
         val globals = HashMap<String, DefinedVariable>()
+        val types = HashMap<String, DefinedType>()
+        val imports = ArrayList<String>()
 
         this.tokens = tokens
         this.i = 0
@@ -79,6 +80,13 @@ class Lexer {
                     val variabl = parseVariable()
                     globals[variabl.name] = variabl
                 }
+                on( MatureType.KEYWORD, "imp" ) {
+                    if ( globals.isNotEmpty() || types.isNotEmpty() || functions.isNotEmpty() )
+                        throw LexerException("Imports can only happen on top of a file.")
+
+                    val import = parseImport()
+                    imports.add( import )
+                }
                 default {
                     throw LexerException( "Expected `func`, `type` or `var` keywords, got $this" )
                 }
@@ -86,6 +94,15 @@ class Lexer {
         } while (! atEof() )
         return Root(types, globals, functions)
     }
+
+    /**
+     * Parsers an if/else chain
+     * ```
+     * imp "path/to/file.wsp"
+     * ```
+     */
+    private fun parseImport() =
+        consumeOrThrow("Expected `path` after `imp` keyword!", MatureType.STRING ).value
 
     /**
      * Parsers a function declaration
@@ -259,9 +276,6 @@ class Lexer {
             }
             on( MatureType.KEYWORD, "do" ) {
                 // TODO: Parse out do-while loop
-            }
-            on( MatureType.KEYWORD, "imp" ) {
-                // TODO: Parse out imp
             }
             default {
                 throw LexerException("Expected keyword, name, or a return; but got '$this'")

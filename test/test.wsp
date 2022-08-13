@@ -1,3 +1,5 @@
+imp "path/to/file.wsp"
+
 type TestType [
   a: i32
   b: i32
