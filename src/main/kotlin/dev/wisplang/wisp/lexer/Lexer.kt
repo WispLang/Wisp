@@ -440,15 +440,15 @@ class Lexer {
     private fun call(): Expression {
         var expression: Expression = primary()
 
-        // basically handles `getCallback()( params )` but not `getCallback().invoke( params )`
+        // FIXME: basically handles `getCallback()( params )` but not `getCallback().invoke( params )`
         while (true) {
             expression = if ( peekIs(MatureType.SYMBOL, "(") )
                 finishCall( ( expression as NamedExpression ).name )
             else if ( peekIs( MatureType.SYMBOL, "[" ) )
                 finishConstruct( ( expression as NamedExpression ).name )
             else if ( peekIs( MatureType.SYMBOL, "." ) ) {
-                println( tokens.slice( i.rangeTo( i + 10 ) ) )
-                break
+                i--
+                NamedExpression( parseIdentifier() )
             } else
                 break
         }
