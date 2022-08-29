@@ -14,12 +14,21 @@ class Lexer {
 
     // region util
     private fun peek( offset: Int = 1 ) = tokens[i + offset]
-    private fun atEof() = tokens[i].type == MatureType.EOF
+    private fun atEof() = tokens[ if ( i >= tokens.size ) tokens.size - 1 else i ].type == MatureType.EOF
     internal fun consume() = tokens[i++]
     private fun pos() = "[${peek(0).line}:${peek(0).col}]"
+    override fun toString() = "Lexer{ i=$i, tokens=$tokens }"
 
     private fun peekIs( type: MatureType, vararg values: String ) =
         peek( 0 ).type == type && ( values.isEmpty() || peek( 0 ).value in values )
+
+    private fun peekIs( type: MatureType, ignoreNewlines: Boolean, vararg values: String ): Boolean {
+        var offset = 0
+        while ( peek( offset ).type == MatureType.NEWLINE )
+            offset += 1
+
+        return peek( offset ).type == type && ( values.isEmpty() || peek( offset ).value in values )
+    }
 
     private fun consumeOrThrow( err: String, value: String? = null, vararg types: MatureType ): MatureToken {
         if ( peek(0).type in types && ( value == null || peek(0).value == value ) )
@@ -86,6 +95,7 @@ class Lexer {
                     val import = parseImport()
                     imports.add( import )
                 }
+                on( MatureType.EOF ) { }
                 default {
                     throw LexerException( "Expected `func`, `type` or `var` keywords, got $this" )
                 }
@@ -156,10 +166,12 @@ class Lexer {
 
         // -> paramName.int + 12
         val statements = ArrayList<Statement>()
-        while ( i + 1 < tokens.size && !peekIs( MatureType.SYMBOL, "}" ) ) {
+        while ( i + 1 < tokens.size && !peekIs( MatureType.SYMBOL, true, "}" ) ) {
             statements.add( parseStatement() )
             consumeOrThrow( "Expected `newline` after `statement` in block!", MatureType.NEWLINE )
         }
+        consumeIfIs(MatureType.NEWLINE)
+        consumeIfIs(MatureType.NEWLINE)
 
         consumeOrThrow( "Expected `}` symbol after `body` in block!", "}", MatureType.SYMBOL )
 
@@ -416,10 +428,19 @@ class Lexer {
     }
 
     private fun factor(): Expression {
-        var expr = unary()
+        var expr = access()
 
         while ( peekIs( MatureType.SYMBOL, "/", "*", "%" ) )
-            expr = BinaryExpression( expr, Operator.of( consume().value ), unary() )
+            expr = BinaryExpression( expr, Operator.of( consume().value ), access() )
+
+        return expr
+    }
+
+    private fun access(): Expression {
+        var expr = unary()
+
+        while ( consumeIfIs( MatureType.SYMBOL, "." ) )
+            expr = BinaryExpression( expr, Operator.ACC, unary() )
 
         return expr
     }
@@ -440,16 +461,12 @@ class Lexer {
     private fun call(): Expression {
         var expression: Expression = primary()
 
-        // FIXME: basically handles `getCallback()( params )` but not `getCallback().invoke( params )`
         while (true) {
             expression = if ( peekIs(MatureType.SYMBOL, "(") )
                 finishCall( ( expression as NamedExpression ).name )
             else if ( peekIs( MatureType.SYMBOL, "[" ) )
                 finishConstruct( ( expression as NamedExpression ).name )
-            else if ( peekIs( MatureType.SYMBOL, "." ) ) {
-                i--
-                NamedExpression( parseIdentifier() )
-            } else
+            else
                 break
         }
 
@@ -460,9 +477,9 @@ class Lexer {
         val arguments = ArrayList<Expression>()
 
         if ( consumeIfIs( MatureType.SYMBOL, "(" ) ) {
-            do {
+            while ( peekIs(MatureType.NAME) || consumeIfIs( MatureType.SYMBOL, "," ) ) {
                 arguments.add( parseExpression() )
-            } while ( consumeIfIs(MatureType.SYMBOL, ",") )
+            }
         }
 
         consumeOrThrow( "Expect ')' after arguments.", MatureType.SYMBOL, ")" )

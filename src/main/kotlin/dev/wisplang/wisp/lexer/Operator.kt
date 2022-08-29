@@ -20,7 +20,9 @@ enum class Operator(val sym: String) {
     LE("<="),
     NEQ("!="),
     AAD("++"),
-    SSU("--");
+    SSU("--"),
+
+    ACC(".");
 
     companion object {
         private val STRINGS: List<String> = Operator.values().map { it.sym }

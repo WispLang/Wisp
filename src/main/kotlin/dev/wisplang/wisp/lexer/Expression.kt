@@ -11,8 +11,6 @@ data class BinaryExpression( val left: Expression, val op: Operator, val right: 
 
 data class GroupedExpression( val right: Expression ) : Expression()
 
-data class AccessExpression( val name: Identifier ) : Expression()
-
 data class CallExpression( val func: Expression, val params: ArrayList<Expression> ) : Expression()
 data class ConstructExpression( val name: Identifier, val params: ArrayList<Expression> ) : Expression()
 
