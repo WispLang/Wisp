@@ -6,18 +6,18 @@ import dev.wisplang.wisp.ast.PrimitiveTypes
 
 sealed class Statement
 
-class ExpressionStatement(val expr: Expression) : Statement()
+data class ExpressionStatement(val expr: Expression) : Statement()
 
-class VarDefStatement(val variable: DefinedVariable) : Statement()
+data class VarDefStatement(val variable: DefinedVariable) : Statement()
 
-class ReturnStatement(val expr: Expression) : Statement()
+data class ReturnStatement(val expr: Expression) : Statement()
 
-class WhileStatement(val condition: Expression, val body: Block) : Statement()
-class DoWhileStatement(val condition: Expression, val body: Block) : Statement()
+data class WhileStatement(val condition: Expression, val body: Block) : Statement()
+data class DoWhileStatement(val condition: Expression, val body: Block) : Statement()
 
-class AssignStatement(val id: Identifier, val parseExpression: Expression) : Statement()
+data class AssignStatement(val id: Identifier, val parseExpression: Expression) : Statement()
 
-class ForStatement(
+data class ForStatement(
     val variable: DefinedVariable,
     val condition: Expression,
     val operation: Expression,

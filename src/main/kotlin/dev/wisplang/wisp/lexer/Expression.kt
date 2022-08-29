@@ -2,16 +2,18 @@ package dev.wisplang.wisp.lexer
 
 sealed class Expression
 
-class LiteralExpression( val value: String ) : Expression()
+data class LiteralExpression( val value: String ) : Expression()
 
-class UnaryExpression( val op: Operator, val right: Expression ) : Expression()
-class InverseUnaryExpression( val left: Expression, val op: Operator ) : Expression()
+data class UnaryExpression( val op: Operator, val right: Expression ) : Expression()
+data class InverseUnaryExpression( val left: Expression, val op: Operator ) : Expression()
 
-class BinaryExpression( val left: Expression, val op: Operator, val right: Expression ) : Expression()
+data class BinaryExpression( val left: Expression, val op: Operator, val right: Expression ) : Expression()
 
-class GroupedExpression( val right: Expression ) : Expression()
+data class GroupedExpression( val right: Expression ) : Expression()
 
-class CallExpression( val name: Identifier, val params: ArrayList<Expression> ) : Expression()
-class ConstructExpression( val name: Identifier, val params: ArrayList<Expression> ) : Expression()
+data class AccessExpression( val name: Identifier ) : Expression()
 
-class NamedExpression( val name: Identifier ) : Expression()
+data class CallExpression( val func: Expression, val params: ArrayList<Expression> ) : Expression()
+data class ConstructExpression( val name: Identifier, val params: ArrayList<Expression> ) : Expression()
+
+data class NamedExpression( val name: Identifier ) : Expression()

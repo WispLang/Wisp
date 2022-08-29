@@ -16,6 +16,7 @@ class Lexer {
     private fun peek( offset: Int = 1 ) = tokens[i + offset]
     private fun atEof() = tokens[i].type == MatureType.EOF
     internal fun consume() = tokens[i++]
+    private fun pos() = "[${peek(0).line}:${peek(0).col}]"
 
     private fun peekIs( type: MatureType, vararg values: String ) =
         peek( 0 ).type == type && ( values.isEmpty() || peek( 0 ).value in values )
@@ -31,7 +32,7 @@ class Lexer {
         if ( peek(0).type == types && ( values.isEmpty() || peek(0).value in values ) )
             return consume()
         else
-            throw LexerException(err)
+            throw LexerException( "${pos()} $err" )
     }
 
     private fun consumeIfIs( type: MatureType, value: String ): Boolean {
@@ -437,17 +438,19 @@ class Lexer {
         }
 
     private fun call(): Expression {
-        var expression = primary()
+        var expression: Expression = primary()
 
+        // basically handles `getCallback()( params )` but not `getCallback().invoke( params )`
         while (true) {
             expression = if ( peekIs(MatureType.SYMBOL, "(") )
                 finishCall( ( expression as NamedExpression ).name )
             else if ( peekIs( MatureType.SYMBOL, "[" ) )
                 finishConstruct( ( expression as NamedExpression ).name )
             else if ( peekIs( MatureType.SYMBOL, "." ) ) {
-                i--
-                NamedExpression( parseIdentifier() )
-            } else break
+                println( tokens.slice( i.rangeTo( i + 10 ) ) )
+                break
+            } else
+                break
         }
 
         return expression
@@ -463,7 +466,7 @@ class Lexer {
         }
 
         consumeOrThrow( "Expect ')' after arguments.", MatureType.SYMBOL, ")" )
-        return CallExpression( name, arguments )
+        return CallExpression( NamedExpression( name ), arguments )
     }
 
     private fun finishConstruct( name: Identifier ): Expression {
@@ -497,7 +500,7 @@ class Lexer {
                 expression = NamedExpression( id )
             }
             default {
-                throw LexerException( "Expected expression.." )
+                throw LexerException( "${pos()} Expected expression.." )
             }
         }
 
