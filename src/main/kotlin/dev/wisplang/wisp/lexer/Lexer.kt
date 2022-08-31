@@ -129,7 +129,8 @@ class Lexer {
     private fun parseFunction(): DefinedFunction {
         // check if the function name is specified
         // Name
-        val name = consumeOrThrow("Expected `name` after `func` keyword in function declaration!", MatureType.NAME).value
+        val name =
+            consumeOrThrow("Expected `name` after `func` keyword in function declaration!", MatureType.NAME).value
 
         // (
         consumeOrThrow("Expected `(` symbol after `name` in function declaration!", "(", MatureType.SYMBOL)
