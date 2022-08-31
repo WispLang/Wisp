@@ -9,7 +9,7 @@ import dev.wisplang.wisp.util.TokenMatch.match
 
 @Suppress("SameParameterValue")
 class Lexer {
-    private var tokens: List<MatureToken> = listOf()
+    private lateinit var tokens: List<MatureToken>
     private var i: Int = 0
 
     // region util
