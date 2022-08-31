@@ -1,4 +1,4 @@
-package dev.wisplang.wisp.tokenizer;
+package dev.wisplang.wisp.tokenizer
 
 enum class Keywords {
     DO, ELSE,
@@ -11,8 +11,6 @@ enum class Keywords {
     WHILE;
 
     companion object {
-        private val STRINGS: List<String> = Keywords.values().map { it.name.lowercase() }
-
-        fun strings() = STRINGS
+        val STRINGS: List<String> = Keywords.values().map { it.name.lowercase() }
     }
 }

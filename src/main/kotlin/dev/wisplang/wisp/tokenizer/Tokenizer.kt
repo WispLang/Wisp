@@ -252,8 +252,8 @@ object Tokenizer {
 
                 Type.NAME -> token(
                     when (token.value) {
-                        in Keywords.strings() -> MatureType.KEYWORD
-                        in Primitive.strings() -> MatureType.PRIMITIVE
+                        in Keywords.STRINGS -> MatureType.KEYWORD
+                        in Primitive.STRINGS -> MatureType.PRIMITIVE
                         else -> MatureType.NAME
                     },
                     token
