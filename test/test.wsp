@@ -1,3 +1,5 @@
+imp "path/to/file.wsp"
+
 type TestType [
   a: i32
   b: i32
@@ -23,6 +25,13 @@ func testLoops(): u1 {
     for var i: i32 = 1, i < max, i++ {
         num = TestType[i num].add()
     }
+    while cond {
+      //code
+    }
+    //or
+    do {
+      //code
+    } while cond
     -> testConditions(num)
 }
 //test regular comment

@@ -1,6 +1,9 @@
 package dev.wisplang.wisp.ast
 
+import dev.wisplang.wisp.lexer.Expression
+
 data class DefinedVariable(
-    val type: BasicType,
-    val default: Unit
+    val name: String,
+    val type: BaseType,
+    val default: Expression? = null
 )
