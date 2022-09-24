@@ -64,7 +64,7 @@ class Lexer {
     // endregion util
 
     @Suppress("unused", "ControlFlowWithEmptyBody")
-    fun lex(tokens: List<MatureToken>): Root {
+    fun lex( tokens: List<MatureToken>, file: String ): Root {
         val functions = HashMap<String, DefinedFunction>()
         val globals = HashMap<String, DefinedVariable>()
         val types = HashMap<String, DefinedType>()
@@ -105,7 +105,7 @@ class Lexer {
             }
         } while (!atEof())
 
-        return Root(types, globals, functions)
+        return Root( file, types, globals, functions)
     }
 
     /**
