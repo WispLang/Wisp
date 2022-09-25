@@ -25,20 +25,24 @@ func testLoops(): u1 {
     for var i: i32 = 1, i < max, i++ {
         num = TestType[i num].add()
     }
-    while cond {
+    while num != 23 {
         num = 23
     }
-    while cond {
+    while 0 {
       //code
     }
     //or
     do {
-      num = 23
-    } while cond
+      num++
+    } while num < 25
     do {
       //code
-    } while cond
+    } while testNum()
     -> testConditions(num)
+}
+
+func testNum(): u1 {
+    -> 1 == 123  // should result in false
 }
 //test regular comment
 /*
