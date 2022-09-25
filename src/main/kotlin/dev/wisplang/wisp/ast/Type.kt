@@ -1,6 +1,6 @@
 package dev.wisplang.wisp.ast
 
-interface BaseType {
+sealed interface BaseType {
     companion object {
         fun findType(name: String): BaseType {
             if (name.isEmpty())
