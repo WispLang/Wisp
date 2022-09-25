@@ -155,6 +155,7 @@ object Tokenizer {
                     when (token.value) {
                         "-" -> {
                             when (tokens[++i].value) {
+                                "-" -> token(MatureType.SYMBOL, token, "--")
                                 ">" -> token(MatureType.SYMBOL, token, "->")
                                 "=" -> token(MatureType.SYMBOL, token, "-=")
                                 else -> {
