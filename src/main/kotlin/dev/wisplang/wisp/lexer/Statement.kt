@@ -38,17 +38,17 @@ private fun exampleAstUsage() {
                 BinaryExpression(
                     NamedExpression(Identifier("number")),
                     Operator.EQ,
-                    LiteralExpression("0")
+                    LiteralExpression(LiteralType.Number, "0")
                 ),
-                Block(ReturnStatement(LiteralExpression("1"))),
+                Block(ReturnStatement(LiteralExpression(LiteralType.Number, "1"))),
                 IfStatement(
                     BinaryExpression(
                         NamedExpression(Identifier("number")),
                         Operator.EQ,
-                        LiteralExpression("1")
+                        LiteralExpression(LiteralType.Number, "1")
                     ),
-                    Block(ReturnStatement(LiteralExpression("1"))),
-                    ElseStatement(Block(ReturnStatement(LiteralExpression("0"))))
+                    Block(ReturnStatement(LiteralExpression(LiteralType.Number, "1"))),
+                    ElseStatement(Block(ReturnStatement(LiteralExpression(LiteralType.Number, "0"))))
                 )
             )
         )

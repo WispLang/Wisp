@@ -272,7 +272,7 @@ class Lexer {
      * ```
      */
     private fun parseStatement(): Statement {
-        var statement: Statement = ExpressionStatement(LiteralExpression(""))
+        var statement: Statement = ExpressionStatement(LiteralExpression(LiteralType.String, ""))
         consumeIfIs(MatureType.NEWLINE)
         // Check if token is a keyword, a name, or return, else throw error
         match {
@@ -510,11 +510,14 @@ class Lexer {
     }
 
     private fun primary(): Expression {
-        var expression: Expression = LiteralExpression("")
+        var expression: Expression = LiteralExpression(LiteralType.String, "")
 
         match {
-            on(MatureType.INTEGER, MatureType.FLOAT, MatureType.STRING) {
-                expression = LiteralExpression(value)
+            on(MatureType.INTEGER, MatureType.FLOAT) {
+                expression = LiteralExpression( LiteralType.Number, value )
+            }
+            oni(MatureType.STRING) {
+                expression = LiteralExpression( LiteralType.String, value )
             }
             on(MatureType.SYMBOL, "(") {
                 val expr = equality()
