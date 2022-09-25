@@ -59,9 +59,9 @@ class Transpiler(private val root: Root, private val dir: File) {
             for (attr in variables)
                 appendLine("\tpublic ${attr.java()};")
             appendLine()
-            appendLine( "\tpublic $name(${variables.java()}) {" )
-            appendLine( 2, variables.joinToString("\n\t\t") { "this.${it.name} = ${it.name};" } )
-            appendLine( "\t}" )
+            appendLine("\tpublic $name(${variables.java()}) {")
+            appendLine(2, variables.joinToString("\n\t\t") { "this.${it.name} = ${it.name};" })
+            appendLine("\t}")
             appendLine()
             for (method in funcs[this@java]!!) {
                 appendLine("\tpublic ${method.java()}")
@@ -94,7 +94,7 @@ class Transpiler(private val root: Root, private val dir: File) {
         }
     }
 
-    private fun Expression.java( convertBools: Boolean = false ): String = when (this) {
+    private fun Expression.java(convertBools: Boolean = false): String = when (this) {
         is BinaryExpression -> "${left.java()}${if (op != Operator.ACC) " ${op.sym} " else op.sym}${right.java()}"
         is CallExpression -> "${func.java()}(${params.java()})"
         is ConstructExpression -> "new ${name.java()}(${params.java()})"
@@ -102,7 +102,7 @@ class Transpiler(private val root: Root, private val dir: File) {
         is InverseUnaryExpression -> "${left.java()}${op.sym}"
         is LiteralExpression -> when {
             type == LiteralType.String -> "\"$value\""
-            convertBools && value.toInt() in listOf( 0, 1 ) -> "${value == "1"}" // handle booleans
+            convertBools && value.toInt() in listOf(0, 1) -> "${value == "1"}" // handle booleans
             else -> value
         }
         is NamedExpression -> name.java()
@@ -112,7 +112,7 @@ class Transpiler(private val root: Root, private val dir: File) {
     private fun Identifier.java(): String = "$name${if (selector != null) ".${selector!!.java()}" else ""}"
 
     private fun List<Any>.java() = buildString {
-        if ( this@java.isNotEmpty() ) {
+        if (this@java.isNotEmpty()) {
             append(
                 joinToString(", ", prefix = " ") {
                     when (it) {
@@ -129,18 +129,18 @@ class Transpiler(private val root: Root, private val dir: File) {
     private fun DefinedFunction.java(): String {
         var removed: DefinedVariable? = null
         var value = buildString {
-            append( "${returnType.java()} $name(" )
-            val params = ArrayList( parameters )
-            if ( params.isNotEmpty() ) {
-                if ( params[0].type is DefinedTypeRef && ( params[0].type as DefinedTypeRef ).name == methodType?.name )
+            append("${returnType.java()} $name(")
+            val params = ArrayList(parameters)
+            if (params.isNotEmpty()) {
+                if (params[0].type is DefinedTypeRef && (params[0].type as DefinedTypeRef).name == methodType?.name)
                     removed = params.removeAt(0)
-                append( params.java() )
+                append(params.java())
             }
-            append( ") ${body.java(2)}\n" )
+            append(") ${body.java(2)}\n")
         }
 
-        if ( removed != null )
-            value = value.replace( parameters[0].name, "this" )
+        if (removed != null)
+            value = value.replace(parameters[0].name, "this")
 
         return value
     }
@@ -148,8 +148,8 @@ class Transpiler(private val root: Root, private val dir: File) {
     private fun Block.java(indent: Int, inlineBrackets: Boolean = false): String =
         if (statements.isEmpty())
             "{  } "
-        else if ( inlineBrackets && statements.size == 1 )
-            "\n${"\t".repeat(indent)}${statements[0].java(indent)}\n${"\t".repeat( indent - 1 )}"
+        else if (inlineBrackets && statements.size == 1)
+            "\n${"\t".repeat(indent)}${statements[0].java(indent)}\n${"\t".repeat(indent - 1)}"
         else buildString {
             appendLine("{")
             for (statement in statements)
@@ -162,9 +162,9 @@ class Transpiler(private val root: Root, private val dir: File) {
         is DoWhileStatement -> "do ${body.java(indent + 1, true)}while ( ${condition.java(true)} );"
         is ElseStatement -> body.java(indent + 1, true)
         is ExpressionStatement -> "${expr.java()};"
-        is ForStatement -> "for ( ${variable.java()}; ${condition.java()}; ${operation.java()} ) ${body.java( indent + 1, true )}"
-        is IfStatement -> "if ( ${condition.java()} ) ${body.java(indent + 1, true)}${if (next != null) "else ${next!!.java(indent)}" else ""}"
-        is ReturnStatement -> "return ${expr.java( type == PrimitiveTypes.U1 )};"
+        is ForStatement -> "for ( ${variable.java()}; ${condition.java()}; ${operation.java()} ) ${body.java(indent + 1,true)}"
+        is IfStatement -> "if ( ${condition.java()} ) ${body.java(indent + 1,true)}${if (next != null) "else ${next!!.java(indent)}" else ""}"
+        is ReturnStatement -> "return ${expr.java(type == PrimitiveTypes.U1)};"
         is VarDefStatement -> "${variable.java()};"
         is WhileStatement -> "while ( ${condition.java(true)} ) ${body.java(indent + 1, true)}"
     }

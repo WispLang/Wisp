@@ -64,7 +64,7 @@ class Lexer {
     // endregion util
 
     @Suppress("unused", "ControlFlowWithEmptyBody")
-    fun lex( tokens: List<MatureToken>, file: String ): Root {
+    fun lex(tokens: List<MatureToken>, file: String): Root {
         val functions = HashMap<String, DefinedFunction>()
         val globals = HashMap<String, DefinedVariable>()
         val types = HashMap<String, DefinedType>()
@@ -105,7 +105,7 @@ class Lexer {
             }
         } while (!atEof())
 
-        return Root( file, types, globals, functions)
+        return Root(file, types, globals, functions)
     }
 
     /**
@@ -283,19 +283,19 @@ class Lexer {
                 statement = parseIfChain()
             }
             on(MatureType.NAME) {
-                val isEqual = peekIs( MatureType.SYMBOL, "=" )
+                val isEqual = peekIs(MatureType.SYMBOL, "=")
                 i--
-                statement = if ( isEqual )
+                statement = if (isEqual)
                     parseAssign()
                 else
-                    ExpressionStatement( unary() )
+                    ExpressionStatement(unary())
             }
             on(MatureType.SYMBOL, "->") {
                 statement = ReturnStatement(parseExpression())
             }
             on(MatureType.SYMBOL, "--", "++") {
                 i--
-                statement = ExpressionStatement( unary() )
+                statement = ExpressionStatement(unary())
             }
             on(MatureType.KEYWORD, "for") {
                 statement = parseForLoop()
@@ -522,10 +522,10 @@ class Lexer {
 
         match {
             on(MatureType.INTEGER, MatureType.FLOAT) {
-                expression = LiteralExpression( LiteralType.Number, value )
+                expression = LiteralExpression(LiteralType.Number, value)
             }
             on(MatureType.STRING) {
-                expression = LiteralExpression( LiteralType.String, value )
+                expression = LiteralExpression(LiteralType.String, value)
             }
             on(MatureType.SYMBOL, "(") {
                 val expr = equality()
