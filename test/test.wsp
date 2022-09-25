@@ -26,9 +26,15 @@ func testLoops(): u1 {
         num = TestType[i num].add()
     }
     while cond {
+        num = 23
+    }
+    while cond {
       //code
     }
     //or
+    do {
+      num = 23
+    } while cond
     do {
       //code
     } while cond
