@@ -29,8 +29,7 @@ class Transpiler(private val root: Root, private val dir: File) {
     fun java() = root.java()
 
     private fun Root.java() {
-        var name = File(filename).nameWithoutExtension
-        name = name[0].uppercase() + name.substring(1 until name.length) + "Wsp"
+        val name = File(filename).nameWithoutExtension.replaceFirstChar(Char::uppercase) + "Wsp"
 
         // contained classes go to own files
         for (type in types)
