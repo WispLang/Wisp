@@ -28,10 +28,16 @@ func testLoops(): u1 {
     while num != 23 {
         num = 23
     }
-    while 0 {
+    while num == 23 {
+      num++;
+    }
+    while num < 1 {
       //code
     }
     //or
+    do {
+      num--
+    } while num > 0
     do {
       num++
     } while num < 25
