@@ -283,10 +283,19 @@ class Lexer {
                 statement = parseIfChain()
             }
             on(MatureType.NAME) {
-                statement = parseAssign()
+                val isEqual = peekIs( MatureType.SYMBOL, "=" )
+                i--
+                statement = if ( isEqual )
+                    parseAssign()
+                else
+                    ExpressionStatement( unary() )
             }
             on(MatureType.SYMBOL, "->") {
                 statement = ReturnStatement(parseExpression())
+            }
+            on(MatureType.SYMBOL, "--", "++") {
+                i--
+                statement = ExpressionStatement( unary() )
             }
             on(MatureType.KEYWORD, "for") {
                 statement = parseForLoop()
@@ -394,7 +403,6 @@ class Lexer {
      * ```
      */
     private fun parseAssign(): Statement {
-        i--
         val id = parseIdentifier()
         consumeOrThrow("Expected `=` symbol after `name` in assign statement!", "=", MatureType.SYMBOL)
         return AssignStatement(id, parseExpression())
@@ -516,7 +524,7 @@ class Lexer {
             on(MatureType.INTEGER, MatureType.FLOAT) {
                 expression = LiteralExpression( LiteralType.Number, value )
             }
-            oni(MatureType.STRING) {
+            on(MatureType.STRING) {
                 expression = LiteralExpression( LiteralType.String, value )
             }
             on(MatureType.SYMBOL, "(") {
