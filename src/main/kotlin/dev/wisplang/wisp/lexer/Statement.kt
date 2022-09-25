@@ -15,7 +15,7 @@ data class ReturnStatement(val expr: Expression) : Statement()
 data class WhileStatement(val condition: Expression, val body: Block) : Statement()
 data class DoWhileStatement(val condition: Expression, val body: Block) : Statement()
 
-data class AssignStatement(val id: Identifier, val parseExpression: Expression) : Statement()
+data class AssignStatement(val name: Identifier, val expr: Expression) : Statement()
 
 data class ForStatement(
     val variable: DefinedVariable,
