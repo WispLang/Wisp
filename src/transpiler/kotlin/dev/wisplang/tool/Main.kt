@@ -10,11 +10,7 @@ fun main(args: Array<String>) {
     val root = Lexer().lex(matureTokens, args[1])
 
     when (args[0]) {
-        "javailer" -> {
-            val path = File("./src/java/")
-            path.mkdirs()
-
-            Transpiler(root, path).java()
-        }
+        "javailer" -> Transpiler( root, File("./src/java/").apply { mkdirs() } ).java()
+        "astdump" -> AstPrinter(root, File(".")).save()
     }
 }
