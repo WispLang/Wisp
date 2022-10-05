@@ -6,9 +6,10 @@ import java.io.File
 
 
 fun main(args: Array<String>) {
-    val tokenList = Tokenizer.tokenize(File("./test/test.wsp").inputStream().readBytes().toString(Charsets.UTF_8))
+    val file = "./test/test.wsp"
+    val tokenList = Tokenizer.tokenize(File(file).inputStream().readBytes().toString(Charsets.UTF_8))
     val matureTokens = Tokenizer.matureTokens(tokenList)
-    val root = Lexer().lex(matureTokens)
+    val root = Lexer().lex(matureTokens, file)
     println(root)
 }
 

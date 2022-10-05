@@ -5,7 +5,7 @@ import dev.wisplang.wisp.TokenizerException
 
 object Tokenizer {
     private val letterRegex = Regex("[a-zA-Z_$]")
-    private val symbolRegex = Regex("[{}()<>,.'\"\\[\\]|\\\\+\\-=*/&:]")
+    private val symbolRegex = Regex("[{}()<>,.'\"\\[\\]|\\\\+\\-=*/&:!]")
 
     fun tokenize(value: String): ArrayList<Token> {
         val tokenArray = arrayListOf<Token>()
@@ -155,6 +155,7 @@ object Tokenizer {
                     when (token.value) {
                         "-" -> {
                             when (tokens[++i].value) {
+                                "-" -> token(MatureType.SYMBOL, token, "--")
                                 ">" -> token(MatureType.SYMBOL, token, "->")
                                 "=" -> token(MatureType.SYMBOL, token, "-=")
                                 else -> {

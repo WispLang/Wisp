@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     kotlin("jvm") version "1.7.0"
     application
@@ -8,11 +6,23 @@ plugins {
 group = "io.github.wisplang"
 version = "1.0-SNAPSHOT"
 
+sourceSets {
+    create("transpiler") {
+        this.compileClasspath += sourceSets.main.get().compileClasspath
+        this.runtimeClasspath += sourceSets.main.get().runtimeClasspath
+    }
+}
+
 repositories {
     mavenCentral()
 }
 
-tasks.withType<KotlinCompile> {
+val transpilerImplementation by configurations
+dependencies {
+    transpilerImplementation( sourceSets.main.get().output )
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions.jvmTarget = "17"
 }
 

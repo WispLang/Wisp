@@ -18,12 +18,13 @@ object TokenMatch {
         internal val cases: MutableMap<Pair<MatureType, String?>, (MatureToken) -> Unit> = HashMap()
         internal var defaultBody: MatureToken.() -> Unit = { }
 
-        fun on(type: MatureType, value: String? = null, function: (MatureToken) -> Unit) {
+        fun on(type: MatureType, value: String? = null, function: MatureToken.() -> Unit) {
             cases[Pair(type, value)] = function
         }
 
-        fun oni(type: MatureType, value: String? = null, function: MatureToken.() -> Unit) {
-            cases[Pair(type, value)] = function
+        fun on(type: MatureType, vararg values: String, function: MatureToken.() -> Unit) {
+            for (value in values)
+                cases[Pair(type, value)] = function
         }
 
         fun on(vararg types: MatureType, function: MatureToken.() -> Unit) {

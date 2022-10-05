@@ -64,7 +64,7 @@ class Lexer {
     // endregion util
 
     @Suppress("unused", "ControlFlowWithEmptyBody")
-    fun lex(tokens: List<MatureToken>): Root {
+    fun lex(tokens: List<MatureToken>, file: String): Root {
         val functions = HashMap<String, DefinedFunction>()
         val globals = HashMap<String, DefinedVariable>()
         val types = HashMap<String, DefinedType>()
@@ -105,7 +105,7 @@ class Lexer {
             }
         } while (!atEof())
 
-        return Root(types, globals, functions)
+        return Root(file, types, globals, functions)
     }
 
     /**
@@ -272,7 +272,7 @@ class Lexer {
      * ```
      */
     private fun parseStatement(): Statement {
-        var statement: Statement = ExpressionStatement(LiteralExpression(""))
+        var statement: Statement = ExpressionStatement(LiteralExpression(LiteralType.String, ""))
         consumeIfIs(MatureType.NEWLINE)
         // Check if token is a keyword, a name, or return, else throw error
         match {
@@ -283,10 +283,19 @@ class Lexer {
                 statement = parseIfChain()
             }
             on(MatureType.NAME) {
-                statement = parseAssign()
+                val isEqual = peekIs(MatureType.SYMBOL, "=")
+                i--
+                statement = if (isEqual)
+                    parseAssign()
+                else
+                    ExpressionStatement(unary())
             }
             on(MatureType.SYMBOL, "->") {
                 statement = ReturnStatement(parseExpression())
+            }
+            on(MatureType.SYMBOL, "--", "++") {
+                i--
+                statement = ExpressionStatement(unary())
             }
             on(MatureType.KEYWORD, "for") {
                 statement = parseForLoop()
@@ -394,7 +403,6 @@ class Lexer {
      * ```
      */
     private fun parseAssign(): Statement {
-        i--
         val id = parseIdentifier()
         consumeOrThrow("Expected `=` symbol after `name` in assign statement!", "=", MatureType.SYMBOL)
         return AssignStatement(id, parseExpression())
@@ -510,11 +518,14 @@ class Lexer {
     }
 
     private fun primary(): Expression {
-        var expression: Expression = LiteralExpression("")
+        var expression: Expression = LiteralExpression(LiteralType.String, "")
 
         match {
-            on(MatureType.INTEGER, MatureType.FLOAT, MatureType.STRING) {
-                expression = LiteralExpression(value)
+            on(MatureType.INTEGER, MatureType.FLOAT) {
+                expression = LiteralExpression(LiteralType.Number, value)
+            }
+            on(MatureType.STRING) {
+                expression = LiteralExpression(LiteralType.String, value)
             }
             on(MatureType.SYMBOL, "(") {
                 val expr = equality()

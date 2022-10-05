@@ -15,7 +15,7 @@ data class ReturnStatement(val expr: Expression) : Statement()
 data class WhileStatement(val condition: Expression, val body: Block) : Statement()
 data class DoWhileStatement(val condition: Expression, val body: Block) : Statement()
 
-data class AssignStatement(val id: Identifier, val parseExpression: Expression) : Statement()
+data class AssignStatement(val name: Identifier, val expr: Expression) : Statement()
 
 data class ForStatement(
     val variable: DefinedVariable,
@@ -38,17 +38,17 @@ private fun exampleAstUsage() {
                 BinaryExpression(
                     NamedExpression(Identifier("number")),
                     Operator.EQ,
-                    LiteralExpression("0")
+                    LiteralExpression(LiteralType.Number, "0")
                 ),
-                Block(ReturnStatement(LiteralExpression("1"))),
+                Block(ReturnStatement(LiteralExpression(LiteralType.Number, "1"))),
                 IfStatement(
                     BinaryExpression(
                         NamedExpression(Identifier("number")),
                         Operator.EQ,
-                        LiteralExpression("1")
+                        LiteralExpression(LiteralType.Number, "1")
                     ),
-                    Block(ReturnStatement(LiteralExpression("1"))),
-                    ElseStatement(Block(ReturnStatement(LiteralExpression("0"))))
+                    Block(ReturnStatement(LiteralExpression(LiteralType.Number, "1"))),
+                    ElseStatement(Block(ReturnStatement(LiteralExpression(LiteralType.Number, "0"))))
                 )
             )
         )
