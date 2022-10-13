@@ -1,0 +1,4 @@
+type TestType [
+  a: i32
+  b: i32
+]

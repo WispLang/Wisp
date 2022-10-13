@@ -1,0 +1,54 @@
+imp "importable.wsp"
+imp "folder/TestType.wsp"
+
+func add(numbers: TestType): i32 {
+    -> numbers.a + numbers.b
+}
+
+func testConditions(number: i32): u1 {
+    if number == 0 {
+        printHello()
+        -> 1
+    } else if number == 1 {
+        -> 1
+    } else {
+        -> 0
+    }
+}
+
+var max: i32 = 10 + 5
+
+func testLoops(): u1 {
+    var num: i32 = 2
+    for var i: i32 = 1, i < max, i++ {
+        num = TestType[i num].add()
+    }
+    while num != 23 {
+        num = 23
+    }
+    while num == 23 {
+      num++;
+    }
+    while num < 1 {
+      //code
+    }
+    //or
+    do {
+      num--
+    } while num > 0
+    do {
+      num++
+    } while num < 25
+    do {
+      //code
+    } while testNum()
+    -> testConditions(num)
+}
+
+func testNum(): u1 {
+    -> 1 == 123  // should result in false
+}
+//test regular comment
+/*
+ *  test multiline comment
+ */
