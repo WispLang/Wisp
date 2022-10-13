@@ -2,7 +2,7 @@
 
 @file:Suppress("DuplicatedCode")
 
-package tool
+package dev.wisplang.tool
 
 import dev.wisplang.wispc.append
 import dev.wisplang.wispc.appendLine
@@ -21,7 +21,7 @@ class TranspilerShrunk(private val root: Root, private val dir: File) {
     private fun Identifier.java(): String = "$name${if (selector != null) ".${selector!!.java()}" else ""}"
     private fun DefinedVariable.java() = "${type.java()} $name${if (default != null) " = ${default!!.java()}" else ""}"
     init { for ((_, func) in root.functions) if (func.parameters.isNotEmpty() && func.parameters[0].type is DefinedTypeRef && (func.parameters[0].type as DefinedTypeRef).name in root.types) funcs.computeIfAbsent(root.types[(func.parameters[0].type as DefinedTypeRef).name]) { ArrayList() }.add(func) else funcs[null]!!.add(func) }
-    private fun Root.java() = ( File(filename).nameWithoutExtension.replaceFirstChar(Char::uppercase) + "Wsp" ).let { print(it);files.apply { for (type in types) files[type.key] = type.value.java() }.computeIfAbsent( filename ) { _ -> dir / "${it}.java" }.writeText( buildString { appendLine("public class $it {").apply { for (global in globals) appendLine("\tpublic static ${global.value.java()};") }.appendLine().apply { for (method in funcs[null]!!) this.apply { this@TranspilerShrunk.type = method.returnType }.appendLine("\tpublic static ${method.java()}") }.appendLine("}") }) }
+    private fun Root.java() = ( File(file).nameWithoutExtension.replaceFirstChar(Char::uppercase) + "Wsp" ).let { print(it);files.apply { for (type in types) files[type.key] = type.value.java() }.computeIfAbsent( file ) { _ -> dir / "${it}.java" }.writeText( buildString { appendLine("public class $it {").apply { for (global in globals) appendLine("\tpublic static ${global.value.java()};") }.appendLine().apply { for (method in funcs[null]!!) this.apply { this@TranspilerShrunk.type = method.returnType }.appendLine("\tpublic static ${method.java()}") }.appendLine("}") }) }
     private fun DefinedType.java() = ( dir / "$name.java" ).apply { this@TranspilerShrunk.methodType = this@java }.apply { writeText( buildString { appendLine("public class ${this@java.name} {").apply { for (attr in variables) appendLine("\tpublic ${attr.java()};") }.appendLine().appendLine("\tpublic ${this@java.name}(${variables.java()}) {").appendLine(2, variables.joinToString("\n\t\t") { "this.${it.name} = ${it.name};" }).appendLine("\t}").appendLine().apply { for (method in funcs[this@java]!!) appendLine("\tpublic ${method.java()}") }.appendLine("}") } ) }.apply { this@TranspilerShrunk.methodType = null }
     private fun List<Any>.java() = buildString { if (this@java.isNotEmpty()) append(joinToString(", ", prefix = " ") { when (it) { is Expression -> it.java(); is DefinedVariable -> it.java() else -> throw IllegalStateException()}}).append(" ") }
     private fun DefinedFunction.java() = parameters.find { it.type is DefinedTypeRef && (it.type as DefinedTypeRef).name == methodType?.name }.let { buildString { append("${returnType.java()} $name(").apply { if (parameters.isNotEmpty()) append( ArrayList(parameters).apply { remove( it ) }.java() ) }.append(") ${body.java(2)}\n") }.run { if (it != null) this.replace(it.name, "this") else this } }

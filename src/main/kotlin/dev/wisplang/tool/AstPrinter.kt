@@ -1,4 +1,4 @@
-package tool
+package dev.wisplang.tool
 
 import dev.wisplang.wispc.appendLine
 import dev.wisplang.wispc.ast.DefinedFunction
@@ -8,9 +8,9 @@ import dev.wisplang.wispc.ast.Root
 import dev.wisplang.wispc.div
 import java.io.File
 
-class AstPrinter(private val root: Root, private val dir: File) {
+class AstPrinter(private val root: Root, val pretty: Boolean = false) {
 
-    fun save() = ( dir / "${root.filename.removeSuffix("wsp")}ast" ).writeText( root.prettyString() )
+    fun save( dir: File ) = ( dir / "${root.file.name.removeSuffix("wsp")}ast" ).writeText( root.prettyString() )
 
     fun print() = print( root.prettyString() )
 

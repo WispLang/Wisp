@@ -1,4 +1,4 @@
-package tool.transpiler
+package dev.wisplang.tool.transpiler
 
 import dev.wisplang.wispc.append
 import dev.wisplang.wispc.appendLine
@@ -7,32 +7,17 @@ import dev.wisplang.wispc.div
 import dev.wisplang.wispc.lexer.*
 import java.io.File
 
-class JavaTranspiler( root: Root, dir: File ) : Transpiler( root, dir ) {
-    init {
-        funcs[null] = ArrayList()
-
-        for ((_, func) in root.functions) {
-            if (func.parameters.isNotEmpty() && func.parameters[0].type is DefinedTypeRef && (func.parameters[0].type as DefinedTypeRef).name in root.types) {
-                val type = root.types[(func.parameters[0].type as DefinedTypeRef).name]
-                funcs.computeIfAbsent(type) { ArrayList() }
-                funcs[type]!!.add(func)
-            } else
-                funcs[null]!!.add(func)
-        }
-    }
-
-    fun java() = root.transpile()
-
+class JavaTranspiler( root: Root, dir: File ) : Transpiler(root, dir.apply { mkdirs() }, ".java") {
     override fun Root.transpile() {
-        var name = File(filename).nameWithoutExtension
+        var name = file.nameWithoutExtension
         name = name[0].uppercase() + name.substring(1 until name.length) + "Wsp"
 
         // contained classes go to own files
         for (type in types)
             files[type.key] = type.value.java()
 
-        // globals and functions go into "${Filename}Wsp.java"
-        files[filename] = dir / "$name.java"
+        // globals and functions go into "${Filename}Wsp${ext}"
+        files[file.path] = dir / "$name.java"
         val string = buildString {
             appendLine("public class $name {")
             for (global in globals)
@@ -44,7 +29,7 @@ class JavaTranspiler( root: Root, dir: File ) : Transpiler( root, dir ) {
             }
             appendLine("}")
         }
-        files[filename]!!.writeText(string)
+        files[file.path]!!.writeText(string)
     }
 
     private fun DefinedType.java(): File {
@@ -162,10 +147,5 @@ class JavaTranspiler( root: Root, dir: File ) : Transpiler( root, dir ) {
         is ReturnStatement -> "return ${expr.java(type == PrimitiveTypes.U1)};"
         is VarDefStatement -> "${variable.java()};"
         is WhileStatement -> "while ( ${condition.java(true)} ) ${body.java(indent + 1, true)}"
-    }
-
-    companion object {
-
-        fun Transpiler.java() = ""
     }
 }

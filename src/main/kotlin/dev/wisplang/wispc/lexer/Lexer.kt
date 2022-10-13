@@ -5,6 +5,7 @@ import dev.wisplang.wispc.ast.*
 import dev.wisplang.wispc.tokenizer.MatureToken
 import dev.wisplang.wispc.tokenizer.MatureType
 import dev.wisplang.wispc.util.TokenMatch.match
+import java.io.File
 
 
 @Suppress("SameParameterValue")
@@ -64,7 +65,7 @@ class Lexer {
     // endregion util
 
     @Suppress("unused", "ControlFlowWithEmptyBody")
-    fun lex(tokens: List<MatureToken>, file: String): Root {
+    fun lex(tokens: List<MatureToken>, file: File): Root {
         val functions = HashMap<String, DefinedFunction>()
         val globals = HashMap<String, DefinedVariable>()
         val types = HashMap<String, DefinedType>()

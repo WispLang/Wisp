@@ -1,4 +1,4 @@
-package tool.transpiler
+package dev.wisplang.tool.transpiler
 
 import dev.wisplang.wispc.append
 import dev.wisplang.wispc.appendLine
@@ -7,7 +7,16 @@ import dev.wisplang.wispc.div
 import dev.wisplang.wispc.lexer.*
 import java.io.File
 
-abstract class Transpiler( protected val root: Root, protected val dir: File ) {
+
+/*
+SO:
+ - 1: remove all possible duplicate code.
+ - 2: transpilers SHOULD be able to work with multiple translation units.
+ - 3: generify the base implementation as much as possible.
+ */
+
+abstract class Transpiler( protected val root: Root, protected val dir: File, private val fileExt: String ) {
+    /** source file -> destination file map */
     protected val files: MutableMap<String, File> = HashMap()
     protected val funcs: MutableMap<DefinedType?, MutableList<DefinedFunction>> = HashMap()
     protected var type: BaseType = VoidType.Void
@@ -24,9 +33,9 @@ abstract class Transpiler( protected val root: Root, protected val dir: File ) {
             } else
                 funcs[null]!!.add(func)
         }
-    }
 
-    fun java() = root.transpile()
+        root.transpile()
+    }
 
     protected abstract fun Root.transpile()
 

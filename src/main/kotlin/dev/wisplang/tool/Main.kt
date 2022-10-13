@@ -1,9 +1,9 @@
-package tool
+package dev.wisplang.tool
 
 import dev.wisplang.wispc.Compiler
 import dev.wisplang.wispc.util.Arguments
 
-fun main(argv: Array<String>) {
+fun main( argv: Array<String> ) {
     Arguments.parse( argv )
     val compiler = Compiler()
     compiler.lex()

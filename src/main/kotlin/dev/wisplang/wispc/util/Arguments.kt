@@ -6,20 +6,14 @@ import kotlinx.cli.ParsingException
 import java.io.File
 
 object Arguments {
-    private val parser = ArgParser("endcc")
+    private val parser = ArgParser("wispc")
 
-    val folder by parser.argument(
-        FileArgType( true, mustExist = true ),
-        "src",
-        "f",
-        "Input folder",
+    val file by parser.argument(
+        FileArgType( listOf( ".wsp" ), true ),
+        "file",
+        "Input file, everything imported will be relative to its directory.",
     )
 
-    val exitAtStage by parser.option(
-        ArgType.Choice<Stage>(),
-        "exit-at-stage",
-        description = "Stops execution at a given step"
-    )
     val dumpTokens by parser.option(
         ArgType.Boolean,
         "dump-tokens",
@@ -45,12 +39,6 @@ object Arguments {
     fun parse( argv: Array<String> ) = parser.parse( argv )
 }
 
-enum class Stage {
-    Tokenization,
-    Lexing,
-    Parsing
-}
-
 enum class TranspilationTarget {
     Java,
     Kotlin,
@@ -60,7 +48,9 @@ enum class TranspilationTarget {
 /**
  * Argument type for file paths.
  */
-class FileArgType( folder: kotlin.Boolean, exts: List<kotlin.String> = listOf(), private val mustExist: kotlin.Boolean ): ArgType<File>(true) {
+class FileArgType( folder: kotlin.Boolean, exts: List<kotlin.String> = listOf(), private val mustExist: kotlin.Boolean = false ): ArgType<File>(true) {
+    constructor( exts: List<kotlin.String>, mustExist: kotlin.Boolean = false ) : this( false, exts, mustExist )
+
     private val desc = if ( folder ) "folder" else "file${ if ( exts.isNotEmpty() ) " ending with $exts" else "" }"
 
     override val description = "{ Path to $desc }"
