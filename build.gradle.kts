@@ -6,20 +6,12 @@ plugins {
 group = "io.github.wisplang"
 version = "1.0-SNAPSHOT"
 
-sourceSets {
-    create("transpiler") {
-        this.compileClasspath += sourceSets.main.get().compileClasspath
-        this.runtimeClasspath += sourceSets.main.get().runtimeClasspath
-    }
-}
-
 repositories {
     mavenCentral()
 }
 
-val transpilerImplementation by configurations
 dependencies {
-    transpilerImplementation( sourceSets.main.get().output )
+    implementation( "org.jetbrains.kotlinx:kotlinx-cli:0.3.5" )
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
