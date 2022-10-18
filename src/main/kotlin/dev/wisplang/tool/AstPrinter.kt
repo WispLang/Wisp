@@ -1,11 +1,11 @@
 package dev.wisplang.tool
 
-import dev.wisplang.wispc.appendLine
+import dev.wisplang.wispc.util.appendLine
 import dev.wisplang.wispc.ast.DefinedFunction
 import dev.wisplang.wispc.ast.DefinedType
 import dev.wisplang.wispc.ast.DefinedVariable
 import dev.wisplang.wispc.ast.Root
-import dev.wisplang.wispc.div
+import dev.wisplang.wispc.util.div
 import java.io.File
 
 class AstPrinter(private val root: Root, val pretty: Boolean = false) {

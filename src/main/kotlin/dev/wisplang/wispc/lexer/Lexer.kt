@@ -1,6 +1,6 @@
 package dev.wisplang.wispc.lexer
 
-import dev.wisplang.wispc.LexerException
+import dev.wisplang.wispc.util.LexerError
 import dev.wisplang.wispc.ast.*
 import dev.wisplang.wispc.tokenizer.MatureToken
 import dev.wisplang.wispc.tokenizer.MatureType
@@ -11,6 +11,7 @@ import java.io.File
 @Suppress("SameParameterValue")
 class Lexer {
     private lateinit var tokens: List<MatureToken>
+    private lateinit var errors: MutableList<LexerError>
     private var i: Int = 0
 
     // region util
@@ -33,18 +34,23 @@ class Lexer {
         return peek(offset).type == type && (values.isEmpty() || peek(offset).value in values)
     }
 
-    private fun consumeOrThrow(err: String, value: String? = null, vararg types: MatureType): MatureToken {
+    private fun error( message: String ) =
+        errors.add( LexerError( message, peek(0).idx, peek(0).line, peek(0).col ) )
+
+    private fun consumeOrNull(err: String, value: String? = null, vararg types: MatureType): MatureToken? {
         if (peek(0).type in types && (value == null || peek(0).value == value))
             return consume()
         else
-            throw LexerException("${pos()} $err")
+            error(err)
+        return null
     }
 
-    private fun consumeOrThrow(err: String, types: MatureType, vararg values: String): MatureToken {
+    private fun consumeOrNull(err: String, types: MatureType, vararg values: String): MatureToken? {
         if (peek(0).type == types && (values.isEmpty() || peek(0).value in values))
             return consume()
         else
-            throw LexerException("${pos()} $err")
+            error(err)
+        return null
     }
 
     private fun consumeIfIs(type: MatureType, value: String): Boolean {
@@ -65,19 +71,19 @@ class Lexer {
     // endregion util
 
     @Suppress("unused", "ControlFlowWithEmptyBody")
-    fun lex(tokens: List<MatureToken>, file: File): Root {
+    fun lex(tokens: List<MatureToken>, file: File): Pair<Root, List<LexerError>> {
         val functions = HashMap<String, DefinedFunction>()
         val globals = HashMap<String, DefinedVariable>()
         val types = HashMap<String, DefinedType>()
         val imports = ArrayList<String>()
 
+        this.errors = mutableListOf()
         this.tokens = tokens
         this.i = 0
 
         do {
             // remove all newlines
-            while (consumeIfIs(MatureType.NEWLINE)) {
-            }
+            while (consumeIfIs(MatureType.NEWLINE));
 
             match {
                 on(MatureType.KEYWORD, "func") {
@@ -94,19 +100,20 @@ class Lexer {
                 }
                 on(MatureType.KEYWORD, "imp") {
                     if (globals.isNotEmpty() || types.isNotEmpty() || functions.isNotEmpty())
-                        throw LexerException("${pos()} Imports can only happen on top of a file.")
+                        error("Imports can only happen on top of a file.")
 
                     val import = parseImport()
-                    imports.add(import)
+                    if ( import != null )
+                        imports.add(import)
                 }
                 on(MatureType.EOF) { }
                 default {
-                    throw LexerException("${pos()} Expected `func`, `type` or `var` keywords, got $this")
+                    error("Expected `func`, `type` or `var` keywords, got $this")
                 }
             }
         } while (!atEof())
 
-        return Root(file, types, globals, functions)
+        return Root(file, types, globals, functions) to errors
     }
 
     /**
@@ -116,7 +123,7 @@ class Lexer {
      * ```
      */
     private fun parseImport() =
-        consumeOrThrow("Expected `path` after `imp` keyword!", MatureType.STRING).value
+        consumeOrNull("Expected `path` after `imp` keyword!", MatureType.STRING)?.value
 
     /**
      * Parsers a function declaration
@@ -131,10 +138,10 @@ class Lexer {
         // check if the function name is specified
         // Name
         val name =
-            consumeOrThrow("Expected `name` after `func` keyword in function declaration!", MatureType.NAME).value
+            consumeOrNull("Expected `name` after `func` keyword in function declaration!", MatureType.NAME)?.value
 
         // (
-        consumeOrThrow("Expected `(` symbol after `name` in function declaration!", "(", MatureType.SYMBOL)
+        consumeOrNull("Expected `(` symbol after `name` in function declaration!", "(", MatureType.SYMBOL)
 
         // paramName: ParamType
         val params = mutableListOf<DefinedVariable>()
@@ -142,13 +149,13 @@ class Lexer {
             params.add(parseVariable())
 
             if (peekIs(MatureType.NAME))
-                throw LexerException("${pos()} Expected `)` or `,` symbols after `param` in function declaration!")
+                error("Expected `)` or `,` symbols after `param` in function declaration!")
 
             consumeIfIs(MatureType.SYMBOL, ",")
         }
 
         // )
-        consumeOrThrow("Expected `)` symbol after `params` in function declaration!", ")", MatureType.SYMBOL)
+        consumeOrNull("Expected `)` symbol after `params` in function declaration!", ")", MatureType.SYMBOL)
 
         // : i32
         val type = if (consumeIfIs(MatureType.SYMBOL, ":"))
@@ -159,7 +166,7 @@ class Lexer {
         // <body>
         val body = parseBlock()
 
-        return DefinedFunction(name, type, params, body)
+        return DefinedFunction(name!!, type, params, body)
     }
 
     /**
@@ -171,18 +178,18 @@ class Lexer {
      * ```
      */
     private fun parseBlock(): Block {
-        consumeOrThrow("Expected `{` symbol to start a block!", "{", MatureType.SYMBOL)
+        consumeOrNull("Expected `{` symbol to start a block!", "{", MatureType.SYMBOL)
 
         // -> paramName.int + 12
         val statements = ArrayList<Statement>()
         while (i + 1 < tokens.size && !peekIs(MatureType.SYMBOL, true, "}")) {
             statements.add(parseStatement())
-            consumeOrThrow("Expected `newline` after `statement` in block!", MatureType.NEWLINE)
+            consumeOrNull("Expected `newline` after `statement` in block!", MatureType.NEWLINE)
         }
         consumeIfIs(MatureType.NEWLINE)
         consumeIfIs(MatureType.NEWLINE)
 
-        consumeOrThrow("Expected `}` symbol after `body` in block!", "}", MatureType.SYMBOL)
+        consumeOrNull("Expected `}` symbol after `body` in block!", "}", MatureType.SYMBOL)
 
         return Block(statements)
     }
@@ -197,14 +204,14 @@ class Lexer {
     private fun parseVariable(): DefinedVariable {
         consumeIfIs(MatureType.KEYWORD, "var")
         // bar
-        val name = consumeOrThrow("Expected `name` for variable declaration!", MatureType.NAME).value
+        val name = consumeOrNull("Expected `name` for variable declaration!", MatureType.NAME)?.value
         // :
-        consumeOrThrow("Expected `:` symbol after `name` in variable declaration!", ":", MatureType.SYMBOL)
+        consumeOrNull("Expected `:` symbol after `name` in variable declaration!", ":", MatureType.SYMBOL)
         // u1
         val type = parseTypeReference("variable")
 
         return DefinedVariable(
-            name,
+            name!!,
             type,
             if (consumeIfIs(MatureType.SYMBOL, "="))
                 parseExpression()
@@ -214,12 +221,12 @@ class Lexer {
     }
 
     private fun parseTypeReference(where: String) = BaseType.findType(
-        consumeOrThrow(
+        consumeOrNull(
             "Expected `name` or `primitive` after `:` symbol in $where declaration!",
             null,
             MatureType.PRIMITIVE,
             MatureType.NAME
-        ).value
+        )!!.value
     )
 
     /**
@@ -249,21 +256,21 @@ class Lexer {
      */
     private fun parseType(): DefinedType {
         // Name
-        val name = consumeOrThrow("Expected `name` after `type` keyword!", MatureType.NAME).value
+        val name = consumeOrNull("Expected `name` after `type` keyword!", MatureType.NAME)?.value
         // [
-        consumeOrThrow("Expected `[` symbol after `name` in type declaration!", "[", MatureType.SYMBOL)
+        consumeOrNull("Expected `[` symbol after `name` in type declaration!", "[", MatureType.SYMBOL)
         // \n
         consumeIfIs(MatureType.NEWLINE)
         // variables
         val vars = ArrayList<DefinedVariable>()
         while (i + 1 < tokens.size && peekIs(MatureType.NAME)) {
             vars.add(parseVariable())
-            consumeOrThrow("Expected `newline` after `var` declaration", MatureType.NEWLINE)
+            consumeOrNull("Expected `newline` after `var` declaration", MatureType.NEWLINE)
         }
         // ]
-        consumeOrThrow("Expected `]` symbol after `newline` in type declaration!", "]", MatureType.SYMBOL)
+        consumeOrNull("Expected `]` symbol after `newline` in type declaration!", "]", MatureType.SYMBOL)
 
-        return DefinedType(name, vars)
+        return DefinedType(name!!, vars)
     }
 
     /**
@@ -308,7 +315,7 @@ class Lexer {
                 statement = parseDoWhileLoop()
             }
             default {
-                throw LexerException("${pos()} Expected keyword, name, or a return; but got '$this'")
+                error("Expected keyword, name, or a return; but got $this")
             }
         }
         return statement
@@ -342,7 +349,7 @@ class Lexer {
     private fun parseDoWhileLoop(): Statement {
         // cond
         val block = parseBlock()
-        consumeOrThrow("Expected `while` keyword after `}` in do-while loop!", "while", MatureType.KEYWORD)
+        consumeOrNull("Expected `while` keyword after `}` in do-while loop!", "while", MatureType.KEYWORD)
         val condition = parseExpression()
 
         return DoWhileStatement(condition, block)
@@ -358,9 +365,9 @@ class Lexer {
      */
     private fun parseForLoop(): Statement {
         val variable = parseVariable()
-        consumeOrThrow("Expected `,` symbol after `vardef` in for loop!", ",", MatureType.SYMBOL)
+        consumeOrNull("Expected `,` symbol after `vardef` in for loop!", ",", MatureType.SYMBOL)
         val condition = parseExpression()
-        consumeOrThrow("Expected `,` symbol after `condition` in for loop!", ",", MatureType.SYMBOL)
+        consumeOrNull("Expected `,` symbol after `condition` in for loop!", ",", MatureType.SYMBOL)
         val operation = parseExpression()
         val block = parseBlock()
 
@@ -405,7 +412,7 @@ class Lexer {
      */
     private fun parseAssign(): Statement {
         val id = parseIdentifier()
-        consumeOrThrow("Expected `=` symbol after `name` in assign statement!", "=", MatureType.SYMBOL)
+        consumeOrNull("Expected `=` symbol after `name` in assign statement!", "=", MatureType.SYMBOL)
         return AssignStatement(id, parseExpression())
     }
     // endregion statements
@@ -501,7 +508,7 @@ class Lexer {
             }
         }
 
-        consumeOrThrow("Expect ')' after arguments.", MatureType.SYMBOL, ")")
+        consumeOrNull("Expect ')' after arguments.", MatureType.SYMBOL, ")")
         return CallExpression(NamedExpression(name), arguments)
     }
 
@@ -514,7 +521,7 @@ class Lexer {
             } while (!peekIs(MatureType.SYMBOL, "]"))
         }
 
-        consumeOrThrow("Expect ']' after arguments.", MatureType.SYMBOL, "]")
+        consumeOrNull("Expect ']' after arguments.", MatureType.SYMBOL, "]")
         return ConstructExpression(name, arguments)
     }
 
@@ -530,7 +537,7 @@ class Lexer {
             }
             on(MatureType.SYMBOL, "(") {
                 val expr = equality()
-                consumeOrThrow("Expected `)` symbol after `expr` in grouped expression!", ")", MatureType.SYMBOL)
+                consumeOrNull("Expected `)` symbol after `expr` in grouped expression!", ")", MatureType.SYMBOL)
                 expression = GroupedExpression(expr)
             }
             on(MatureType.NAME) {
@@ -539,7 +546,7 @@ class Lexer {
                 expression = NamedExpression(id)
             }
             default {
-                throw LexerException("${pos()} Expected expression, got $this..")
+                error("Expected expression, got $this..")
             }
         }
 

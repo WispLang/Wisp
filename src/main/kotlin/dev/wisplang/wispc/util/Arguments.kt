@@ -31,7 +31,7 @@ object Arguments {
     )
 
     val transpilationTarget by parser.option(
-        ArgType.Choice( TranspilationTarget.values().toList(), TranspilationTarget::valueOf ),
+        ArgType.Choice( TranspilationTarget.values().map { it.name.lowercase() }.toList(), { TranspilationTarget.valueOf(it.replaceFirstChar(Char::uppercase)) } ),
         "transpilation-target",
         description = "Transpile to the given language."
     )
