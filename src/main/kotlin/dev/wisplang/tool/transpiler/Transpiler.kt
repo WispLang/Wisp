@@ -14,7 +14,7 @@ SO:
  - 3: generify the base implementation as much as possible.
  */
 
-abstract class Transpiler(protected val root: Root, protected val dir: File, protected val fileExt: String ) {
+abstract class Transpiler(protected val root: Root, protected val dir: File, protected val fileExt: String) {
     /** source file -> destination file map */
     protected val files: MutableMap<String, File> = HashMap()
     protected val funcs: MutableMap<DefinedType?, MutableList<DefinedFunction>> = HashMap()
@@ -55,6 +55,7 @@ abstract class Transpiler(protected val root: Root, protected val dir: File, pro
             convertBools && value.toInt() in listOf(0, 1) -> "${value == "1"}" // handle booleans
             else -> value
         }
+
         is NamedExpression -> name.transpile()
         is UnaryExpression -> "${op.sym}${right.transpile()}"
     }
@@ -95,8 +96,20 @@ abstract class Transpiler(protected val root: Root, protected val dir: File, pro
         is DoWhileStatement -> "do ${body.transpile(indent + 1, true)}while ( ${condition.transpile(true)} );"
         is ElseStatement -> body.transpile(indent + 1, true)
         is ExpressionStatement -> "${expr.transpile()};"
-        is ForStatement -> "for ( ${variable.transpile()}; ${condition.transpile()}; ${operation.transpile()} ) ${body.transpile(indent + 1,true)}"
-        is IfStatement -> "if ( ${condition.transpile()} ) ${body.transpile(indent + 1,true)}${if (next != null) "else ${next!!.transpile(indent)}" else ""}"
+        is ForStatement -> "for ( ${variable.transpile()}; ${condition.transpile()}; ${operation.transpile()} ) ${
+            body.transpile(
+                indent + 1,
+                true
+            )
+        }"
+
+        is IfStatement -> "if ( ${condition.transpile()} ) ${
+            body.transpile(
+                indent + 1,
+                true
+            )
+        }${if (next != null) "else ${next!!.transpile(indent)}" else ""}"
+
         is ReturnStatement -> "return ${expr.transpile(type == PrimitiveTypes.U1)};"
         is VarDefStatement -> "${variable.transpile()};"
         is WhileStatement -> "while ( ${condition.transpile(true)} ) ${body.transpile(indent + 1, true)}"

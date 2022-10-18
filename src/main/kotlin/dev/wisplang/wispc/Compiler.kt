@@ -18,14 +18,14 @@ class Compiler {
 
     // TODO: Decouple from Arguments
     fun lex() {
-        val ( tokenList, tokErrors ) = Tokenizer.tokenize( Arguments.file.inputStream().readBytes().toString(Charsets.UTF_8) )
+        val (tokenList, tokErrors) = Tokenizer.tokenize(Arguments.file.inputStream().readBytes().toString(Charsets.UTF_8))
         val matureTokens = Tokenizer.matureTokens(tokenList)
-        val ( root, lexErrors ) = Lexer().lex(matureTokens, Arguments.file)
+        val (root, lexErrors) = Lexer().lex(matureTokens, Arguments.file)
 
         this.root = root
 
-        for ( error in tokErrors + lexErrors )
-            System.err.println( "${error::class.simpleName} at line ${error.line} column ${error.col}: ${error.message}" )
+        for (error in tokErrors + lexErrors)
+            System.err.println("${error::class.simpleName} at line ${error.line} column ${error.col}: ${error.message}")
     }
 
     // TODO: What does the me need to do here?
@@ -33,17 +33,18 @@ class Compiler {
 
     fun runTool() {
         lex()
-        if (! errored )
+        if (!errored)
             when {
-                Arguments.dumpTokens == true -> AstPrinter( root, Arguments.prettyPrint == true ).print()
-                Arguments.dumpAst == true -> { }
-                Arguments.transpilationTarget != null -> when ( Arguments.transpilationTarget ) {
-                    Java -> JavaTranspiler( root, File("./src/java/") ).transpile()
-                    Kotlin -> KotlinTranspiler( root, File( "./src/kotlin" ) ).transpile()
-                    Python -> PythonTranspiler( root, File( "./src/python" ) ).transpile()
-                    null -> throw IllegalStateException( "How did we get here?" )
+                Arguments.dumpTokens == true -> AstPrinter(root, Arguments.prettyPrint == true).print()
+                Arguments.dumpAst == true -> {}
+                Arguments.transpilationTarget != null -> when (Arguments.transpilationTarget) {
+                    Java -> JavaTranspiler(root, File("./src/java/")).transpile()
+                    Kotlin -> KotlinTranspiler(root, File("./src/kotlin")).transpile()
+                    Python -> PythonTranspiler(root, File("./src/python")).transpile()
+                    null -> throw IllegalStateException("How did we get here?")
                 }
-                else -> throw IllegalStateException( "How did we get here?" )
+
+                else -> throw IllegalStateException("How did we get here?")
             }
     }
 }

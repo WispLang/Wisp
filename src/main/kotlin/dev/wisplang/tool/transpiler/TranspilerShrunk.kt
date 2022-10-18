@@ -2,7 +2,7 @@
 
 @file:Suppress("DuplicatedCode")
 
-package dev.wisplang.tool
+package dev.wisplang.tool.transpiler
 
 import dev.wisplang.wispc.ast.*
 import dev.wisplang.wispc.lexer.*

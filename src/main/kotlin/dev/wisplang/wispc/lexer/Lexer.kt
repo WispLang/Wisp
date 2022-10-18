@@ -34,8 +34,8 @@ class Lexer {
         return peek(offset).type == type && (values.isEmpty() || peek(offset).value in values)
     }
 
-    private fun error( message: String ) =
-        errors.add( LexerError( message, peek(0).idx, peek(0).line, peek(0).col ) )
+    private fun error(message: String) =
+        errors.add(LexerError(message, peek(0).idx, peek(0).line, peek(0).col))
 
     private fun consumeOrNull(err: String, value: String? = null, vararg types: MatureType): MatureToken? {
         if (peek(0).type in types && (value == null || peek(0).value == value))
@@ -103,7 +103,7 @@ class Lexer {
                         error("Imports can only happen on top of a file.")
 
                     val import = parseImport()
-                    if ( import != null )
+                    if (import != null)
                         imports.add(import)
                 }
                 on(MatureType.EOF) { }
