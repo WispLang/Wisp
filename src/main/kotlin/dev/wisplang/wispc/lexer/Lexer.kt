@@ -1,9 +1,9 @@
 package dev.wisplang.wispc.lexer
 
-import dev.wisplang.wispc.util.LexerError
 import dev.wisplang.wispc.ast.*
 import dev.wisplang.wispc.tokenizer.MatureToken
 import dev.wisplang.wispc.tokenizer.MatureType
+import dev.wisplang.wispc.util.LexerError
 import dev.wisplang.wispc.util.TokenMatch.match
 import java.io.File
 
@@ -18,7 +18,6 @@ class Lexer {
     private fun peek(offset: Int = 1) = tokens[i + offset]
     private fun atEof() = tokens[if (i >= tokens.size) tokens.size - 1 else i].type == MatureType.EOF
     internal fun consume() = tokens[i++]
-    private fun pos() = "[${peek(0).line}:${peek(0).col}]"
     override fun toString() = "Lexer{ i=$i, tokens=$tokens }"
 
     private fun peekIs(type: MatureType, vararg values: String) =
